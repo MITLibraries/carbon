@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import click
 
-from carbon.db import engine, session
+from carbon import engine, people
 
 
 @click.group()
@@ -15,5 +15,5 @@ def main():
 @click.option('--db', default='sqlite:///carbon.db')
 def load(db):
     engine.configure(db)
-    with session() as s:
-        pass
+    for person in people():
+        click.echo(person)
