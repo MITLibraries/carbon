@@ -10,7 +10,10 @@ from carbon.db import engine, session, metadata, persons
 @pytest.fixture(scope="session", autouse=True)
 def app_init():
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    test_db = os.path.abspath(os.path.join(current_dir, 'db/test.db'))
+    db_dir = os.path.abspath(os.path.join(current_dir, 'db'))
+    if not os.path.isdir(db_dir):
+        os.mkdir(db_dir)
+    test_db = os.path.join(db_dir, 'test.db')
     engine.configure('sqlite:///%s' % test_db)
     metadata.bind = engine()
     metadata.create_all()
