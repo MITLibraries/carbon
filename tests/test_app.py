@@ -16,7 +16,7 @@ def test_people_generates_people():
     person = next(peeps)
     assert person['KRB_NAME'] == 'foobar'
     person = next(peeps)
-    assert person['KRB_NAME'] == 'foobaz'
+    assert person['KRB_NAME'] == u'Þorgerðr Hǫlgabrúðr'
 
 
 def test_add_child_adds_child_element(E):
@@ -42,4 +42,18 @@ def test_person_feed_adds_person(E):
     )
     p = PersonFeed()
     p.add({'MIT_ID': '1234', 'KRB_NAME': 'foobar'})
-    assert p.bytes() == ET.tostring(xml)
+    assert p.bytes() == ET.tostring(xml, encoding="UTF-8",
+                                    xml_declaration=True)
+
+
+def test_person_feed_uses_utf8_encoding(E):
+    xml = E.records(
+        E.record(
+            E.field('1234', {'name': '[Proprietary_ID]'}),
+            E.field(u'Þorgerðr Hǫlgabrúðr', {'name': '[Username]'})
+        )
+    )
+    p = PersonFeed()
+    p.add({'MIT_ID': '1234', 'KRB_NAME': u'Þorgerðr Hǫlgabrúðr'})
+    assert p.bytes() == ET.tostring(xml, encoding="UTF-8",
+                                    xml_declaration=True)
