@@ -2,6 +2,7 @@
 from __future__ import absolute_import
 import os
 
+from lxml.builder import ElementMaker
 import pytest
 
 from carbon.db import engine, session, metadata, persons
@@ -23,7 +24,6 @@ def app_init():
 def load_data():
     with session() as s:
         s.execute(persons.delete())
-    with session() as s:
         s.execute(persons.insert(), [
             {'MIT_ID': '123456', 'KRB_NAME': 'foobar'},
             {'MIT_ID': '098754', 'KRB_NAME': 'foobaz'}
@@ -31,3 +31,9 @@ def load_data():
     yield
     with session() as s:
         s.execute(persons.delete())
+
+
+@pytest.fixture
+def E():
+    return ElementMaker(namespace='http://www.symplectic.co.uk/hrimporter',
+                        nsmap={None: 'http://www.symplectic.co.uk/hrimporter'})

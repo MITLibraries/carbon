@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import click
 
-from carbon import engine, people
+from carbon import engine, people, PersonFeed
 
 
 @click.group()
@@ -15,5 +15,7 @@ def main():
 @click.option('--db', default='sqlite:///carbon.db')
 def load(db):
     engine.configure(db)
+    feed = PersonFeed()
     for person in people():
-        click.echo(person)
+        feed.add(person)
+    click.echo(feed.bytes())
