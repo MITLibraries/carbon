@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+"""
+    carbon
+    ******
 
-from carbon.app import people, PersonFeed
-from carbon.db import engine, session
+    A tool for generating people.
+"""
+
+__version__ = '0.0.1'
+
+from .app import people, PersonFeed
+from .db import engine, session

@@ -4,16 +4,20 @@ Carbon, a people loader.
 """
 
 import io
+import re
 from setuptools import find_packages, setup
 
 
 with io.open('LICENSE') as f:
     license = f.read()
 
+with open('carbon/__init__.py', 'r') as fp:
+    version = re.search(r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]', fp.read(),
+                        re.MULTILINE).group(1)
 
 setup(
     name='carbon',
-    version='0.0.1',
+    version=version,
     description='Load people into Elements',
     long_description=__doc__,
     url='https://github.com/MITLibraries/carbon',

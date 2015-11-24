@@ -8,14 +8,22 @@ from carbon import engine, people, PersonFeed
 
 
 @click.group()
+@click.version_option()
 def main():
     pass
 
 
 @main.command()
-@click.option('--db', default='sqlite:///carbon.db')
-@click.option('--url')
+@click.argument('db')
+@click.option('--url', help='URL for API endpoint')
 def load(db, url):
+    """Generate a feed of person data.
+
+    The data is pulled from a database identified by DB, which should
+    be a valid SQLAlchemy database connection string. The feed will
+    be POSTed to URL if given, otherwise, it will be written to
+    stdout.
+    """
     engine.configure(db)
     feed = PersonFeed()
     for person in people():
