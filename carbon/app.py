@@ -45,4 +45,4 @@ class PersonFeed(object):
         add_child(record, 'field', person['KRB_NAME'], name='[Username]')
 
     def bytes(self):
-        return ET.tostring(self._root, encoding="UTF-8")
+        return ET.tostring(self._root, encoding="UTF-8", xml_declaration=True)

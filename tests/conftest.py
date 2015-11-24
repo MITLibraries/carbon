@@ -26,11 +26,25 @@ def load_data():
         s.execute(persons.delete())
         s.execute(persons.insert(), [
             {'MIT_ID': '123456', 'KRB_NAME': 'foobar'},
-            {'MIT_ID': '098754', 'KRB_NAME': 'foobaz'}
+            {'MIT_ID': '098754', 'KRB_NAME': u'Þorgerðr Hǫlgabrúðr'}
         ])
     yield
     with session() as s:
         s.execute(persons.delete())
+
+
+@pytest.fixture
+def xml_data(E):
+    return E.records(
+        E.record(
+            E.field('123456', name='[Proprietary_ID]'),
+            E.field('foobar', name='[Username]')
+        ),
+        E.record(
+            E.field('098754', name='[Proprietary_ID]'),
+            E.field(u'Þorgerðr Hǫlgabrúðr', name='[Username]')
+        )
+    )
 
 
 @pytest.fixture
