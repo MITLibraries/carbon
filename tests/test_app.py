@@ -12,10 +12,10 @@ pytestmark = pytest.mark.usefixtures('load_data')
 
 
 def test_people_generates_people():
-    peeps = people()
-    person = next(peeps)
+    peeps = list(people())
+    person = peeps[0]
     assert person['KRB_NAME'] == 'foobar'
-    person = next(peeps)
+    person = peeps[1]
     assert person['KRB_NAME'] == u'Þorgerðr Hǫlgabrúðr'
 
 

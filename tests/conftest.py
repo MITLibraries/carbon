@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+import json
 import os
 
 from lxml.builder import ElementMaker
@@ -20,14 +21,20 @@ def app_init():
     metadata.create_all()
 
 
+@pytest.fixture(scope="session")
+def records():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data = os.path.join(current_dir, 'fixtures/data.json')
+    with open(data) as fp:
+        r = json.load(fp)
+    return r
+
+
 @pytest.yield_fixture
-def load_data():
+def load_data(records):
     with session() as s:
         s.execute(persons.delete())
-        s.execute(persons.insert(), [
-            {'MIT_ID': '123456', 'KRB_NAME': 'foobar'},
-            {'MIT_ID': '098754', 'KRB_NAME': u'Þorgerðr Hǫlgabrúðr'}
-        ])
+        s.execute(persons.insert(), records)
     yield
     with session() as s:
         s.execute(persons.delete())
