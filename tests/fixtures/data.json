@@ -1,7 +1,11 @@
 [{
     "MIT_ID": "123456",
-    "KRB_NAME": "foobar"
+    "KRB_NAME": "foobar",
+    "FIRST_NAME": "Foobar",
+    "MIDDLE_NAME": "Baz"
 }, {
     "MIT_ID": "098754",
-    "KRB_NAME": "Þorgerðr Hǫlgabrúðr"
+    "KRB_NAME": "thor",
+    "FIRST_NAME": "Þorgerðr",
+    "MIDDLE_NAME": "Hǫlgabrúðr"
 }]
