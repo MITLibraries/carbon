@@ -36,17 +36,24 @@ def load_data(records):
 
 
 @pytest.fixture
-def xml_data(E):
-    return E.records(
+def xml_records(E):
+    return [
         E.record(
-            E.field('123456', name='[Proprietary_ID]'),
-            E.field('foobar', name='[Username]')
+            E.field('123456', {'name': '[Proprietary_ID]'}),
+            E.field('foobar', {'name': '[Username]'}),
+            E.field('F B', {'name': '[Initials]'})
         ),
         E.record(
             E.field('098754', name='[Proprietary_ID]'),
-            E.field(u'Þorgerðr Hǫlgabrúðr', name='[Username]')
+            E.field('thor', name='[Username]'),
+            E.field(u'Þ H', name='[Initials]')
         )
-    )
+    ]
+
+
+@pytest.fixture
+def xml_data(E, xml_records):
+    return E.records(*xml_records)
 
 
 @pytest.fixture
