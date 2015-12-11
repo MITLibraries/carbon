@@ -18,7 +18,7 @@ def runner():
 
 
 def test_load_returns_people(runner, E, xml_data):
-    res = runner.invoke(main, ['load', 'sqlite:///tests/db/test.db'])
+    res = runner.invoke(main, ['load', 'sqlite://'])
     assert res.exit_code == 0
     assert res.output.encode('utf-8') == \
         ET.tostring(xml_data, encoding="UTF-8", xml_declaration=True) + b'\n'
@@ -27,7 +27,7 @@ def test_load_returns_people(runner, E, xml_data):
 def test_load_posts_to_url(runner, E, xml_data):
     with requests_mock.Mocker() as m:
         m.post('http://example.com', text='congrats')
-        runner.invoke(main, ['load', 'sqlite:///tests/db/test.db', '--url',
+        runner.invoke(main, ['load', 'sqlite://', '--url',
                              'http://example.com'])
         req = m.request_history[0]
         assert req.text.encode('utf-8') == ET.tostring(xml_data,
