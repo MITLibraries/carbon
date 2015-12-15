@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from io import BytesIO
 
 from lxml import etree as ET
 import pytest
 
 from carbon import people
-from carbon.app import PersonFeed, ns, NSMAP, add_child, initials
+from carbon.app import person_feed, ns, NSMAP, add_child, initials
 
 
 pytestmark = pytest.mark.usefixtures('load_data')
@@ -42,21 +43,26 @@ def test_add_child_adds_child_element(E):
 
 
 def test_person_feed_uses_namespace():
-    p = PersonFeed()
-    assert p._root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
+    b = BytesIO()
+    with person_feed(b):
+        pass
+    root = ET.fromstring(b.getvalue())
+    assert root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
 
 
 def test_person_feed_adds_person(records, xml_records, E):
+    b = BytesIO()
     xml = E.records(xml_records[0])
-    p = PersonFeed()
-    p.add(records[0])
-    assert p.bytes() == ET.tostring(xml, encoding="UTF-8",
-                                    xml_declaration=True)
+    with person_feed(b) as f:
+        f(records[0])
+    assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
+                                       xml_declaration=True)
 
 
 def test_person_feed_uses_utf8_encoding(records, xml_records, E):
+    b = BytesIO()
     xml = E.records(xml_records[1])
-    p = PersonFeed()
-    p.add(records[1])
-    assert p.bytes() == ET.tostring(xml, encoding="UTF-8",
-                                    xml_declaration=True)
+    with person_feed(b) as f:
+        f(records[1])
+    assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
+                                       xml_declaration=True)

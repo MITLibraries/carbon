@@ -2,9 +2,8 @@
 from __future__ import absolute_import
 
 import click
-import requests
 
-from carbon import engine, people, PersonFeed
+from carbon import engine, people, person_feed
 
 
 @click.group()
@@ -15,22 +14,16 @@ def main():
 
 @main.command()
 @click.argument('db')
-@click.option('--url', help='URL for API endpoint')
-def load(db, url):
+@click.option('-o', '--out', help='Output file',
+              default=click.get_binary_stream('stdout'))
+def feed(db, out):
     """Generate a feed of person data.
 
     The data is pulled from a database identified by DB, which should
-    be a valid SQLAlchemy database connection string. The feed will
-    be POSTed to URL if given, otherwise, it will be written to
-    stdout.
+    be a valid SQLAlchemy database connection string. The feed will be
+    printed to stdout unless a destination file is specified by OUT.
     """
     engine.configure(db)
-    feed = PersonFeed()
-    for person in people():
-        feed.add(person)
-    if url is not None:
-        headers = {'Content-type': 'application/xml; charset=UTF-8'}
-        r = requests.post(url, data=feed.bytes(), headers=headers)
-        r.raise_for_status()
-    else:
-        click.echo(feed.bytes())
+    with person_feed(out) as f:
+        for person in people():
+            f(person)
