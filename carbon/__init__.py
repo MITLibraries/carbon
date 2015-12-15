@@ -8,5 +8,5 @@
 
 __version__ = '0.0.1'
 
-from .app import people, PersonFeed
+from .app import people, person_feed
 from .db import engine, session

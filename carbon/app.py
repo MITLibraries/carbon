@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from contextlib import contextmanager
 from functools import partial
 import re
 
@@ -63,22 +64,36 @@ ns = partial(_ns, SYMPLECTIC_NS)
 
 def add_child(parent, element, text, **kwargs):
     """Add a subelement with text."""
-    child = ET.SubElement(parent, ns(element), nsmap=NSMAP, attrib=kwargs)
+    child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text
     return child
 
 
-class PersonFeed(object):
-    def __init__(self):
-        self._root = ET.Element(ns('records'), nsmap=NSMAP)
+@contextmanager
+def person_feed(out):
+    """Generate XML feed of people.
 
-    def add(self, person):
-        record = ET.SubElement(self._root, ns('record'), nsmap=NSMAP)
-        add_child(record, 'field', person['MIT_ID'], name='[Proprietary_ID]')
-        add_child(record, 'field', person['KRB_NAME'], name='[Username]')
-        add_child(record, 'field', initials(person['FIRST_NAME'],
-                                            person['MIDDLE_NAME']),
-                  name='[Initials]')
+    This is a streaming XML generator for people. Output will be
+    written to the provided output destination which can be a file
+    or file-like object. The context manager returns a function
+    which can be called repeatedly to add a person to the feed::
 
-    def bytes(self):
-        return ET.tostring(self._root, encoding="UTF-8", xml_declaration=True)
+        with person_feed(sys.stdout) as f:
+            f({"MIT_ID": "1234", ...})
+            f({"MIT_ID": "5678", ...})
+
+    """
+    with ET.xmlfile(out, encoding='UTF-8') as xf:
+        xf.write_declaration()
+        with xf.element(ns('records'), nsmap=NSMAP):
+            yield partial(_add_person, xf)
+
+
+def _add_person(xf, person):
+    record = ET.Element('record')
+    add_child(record, 'field', person['MIT_ID'], name='[Proprietary_ID]')
+    add_child(record, 'field', person['KRB_NAME'], name='[Username]')
+    add_child(record, 'field', initials(person['FIRST_NAME'],
+                                        person['MIDDLE_NAME']),
+              name='[Initials]')
+    xf.write(record)

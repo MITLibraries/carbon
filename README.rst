@@ -1,7 +1,7 @@
 carbon
 ======
 
-Carbon is a tool for loading people into Symplectic Elements.
+Carbon is a tool for generating a feed of people that can be loaded into Symplectic Elements.
 
 
 Usage
@@ -15,6 +15,6 @@ View the help menu for the `carbon` command::
 
     $ carbon --help
 
-View the help menu for the `load` subcommand::
+View the help menu for the `feed` subcommand::
 
-    $ carbon load --help
+    $ carbon feed --help
