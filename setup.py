@@ -28,7 +28,6 @@ setup(
     install_requires=[
         'click',
         'lxml',
-        'requests',
         'SQLAlchemy',
     ],
     entry_points={
