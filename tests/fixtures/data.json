@@ -2,10 +2,14 @@
     "MIT_ID": "123456",
     "KRB_NAME": "foobar",
     "FIRST_NAME": "Foobar",
-    "MIDDLE_NAME": "Baz"
+    "MIDDLE_NAME": "Baz",
+    "LAST_NAME": "Gaz",
+    "EMAIL": "foobar@example.com"
 }, {
     "MIT_ID": "098754",
     "KRB_NAME": "thor",
     "FIRST_NAME": "Þorgerðr",
-    "MIDDLE_NAME": "Hǫlgabrúðr"
+    "MIDDLE_NAME": "Hǫlgabrúðr",
+    "LAST_NAME": "Hammerson",
+    "EMAIL": "thor@example.com"
 }]

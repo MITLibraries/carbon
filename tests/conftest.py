@@ -41,12 +41,16 @@ def xml_records(E):
         E.record(
             E.field('123456', {'name': '[Proprietary_ID]'}),
             E.field('foobar', {'name': '[Username]'}),
-            E.field('F B', {'name': '[Initials]'})
+            E.field('F B', {'name': '[Initials]'}),
+            E.field('Gaz', {'name': '[Lastname]'}),
+            E.field('foobar@example.com', {'name': '[Email]'})
         ),
         E.record(
             E.field('098754', name='[Proprietary_ID]'),
             E.field('thor', name='[Username]'),
-            E.field(u'Þ H', name='[Initials]')
+            E.field(u'Þ H', name='[Initials]'),
+            E.field('Hammerson', name='[Lastname]'),
+            E.field('thor@example.com', name='[Email]')
         )
     ]
 
