@@ -15,7 +15,7 @@ def people():
 
     Returns an iterator of person dictionaries.
     """
-    sql = select([persons])
+    sql = select([persons]).distinct('MIT_ID')
     with session() as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
@@ -96,4 +96,6 @@ def _add_person(xf, person):
     add_child(record, 'field', initials(person['FIRST_NAME'],
                                         person['MIDDLE_NAME']),
               name='[Initials]')
+    add_child(record, 'field', person['LAST_NAME'], name='[Lastname]')
+    add_child(record, 'field', person['EMAIL'], name='[Email]')
     xf.write(record)
