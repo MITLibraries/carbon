@@ -42,15 +42,21 @@ def xml_records(E):
             E.field('123456', {'name': '[Proprietary_ID]'}),
             E.field('foobar', {'name': '[Username]'}),
             E.field('F B', {'name': '[Initials]'}),
-            E.field('Gaz', {'name': '[Lastname]'}),
-            E.field('foobar@example.com', {'name': '[Email]'})
+            E.field('Gaz', {'name': '[LastName]'}),
+            E.field('Foobar', {'name': '[FirstName]'}),
+            E.field('foobar@example.com', {'name': '[Email]'}),
+            E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
+            E.field('1', {'name': '[IsAcademic]'})
         ),
         E.record(
             E.field('098754', name='[Proprietary_ID]'),
             E.field('thor', name='[Username]'),
             E.field(u'Þ H', name='[Initials]'),
-            E.field('Hammerson', name='[Lastname]'),
-            E.field('thor@example.com', name='[Email]')
+            E.field('Hammerson', name='[LastName]'),
+            E.field(u'Þorgerðr', name='[FirstName]'),
+            E.field('thor@example.com', name='[Email]'),
+            E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
+            E.field('1', {'name': '[IsAcademic]'})
         )
     ]
 

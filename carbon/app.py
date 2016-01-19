@@ -96,6 +96,9 @@ def _add_person(xf, person):
     add_child(record, 'field', initials(person['FIRST_NAME'],
                                         person['MIDDLE_NAME']),
               name='[Initials]')
-    add_child(record, 'field', person['LAST_NAME'], name='[Lastname]')
+    add_child(record, 'field', person['LAST_NAME'], name='[LastName]')
+    add_child(record, 'field', person['FIRST_NAME'], name='[FirstName]')
     add_child(record, 'field', person['EMAIL'], name='[Email]')
+    add_child(record, 'field', 'MIT', name='[AuthenticatingAuthority]')
+    add_child(record, 'field', '1', name='[IsAcademic]')
     xf.write(record)
