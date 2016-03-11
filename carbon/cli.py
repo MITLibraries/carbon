@@ -3,7 +3,8 @@ from __future__ import absolute_import
 
 import click
 
-from carbon import engine, people, person_feed
+from carbon import people, person_feed
+from carbon.db import engine
 
 
 @click.group()

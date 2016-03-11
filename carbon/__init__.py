@@ -6,7 +6,6 @@
     A tool for generating people.
 """
 
-__version__ = '0.0.1'
+__version__ = '0.1.0'
 
 from .app import people, person_feed
-from .db import engine, session

@@ -1,13 +1,29 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from contextlib import contextmanager
+from contextlib import contextmanager, closing
+from datetime import datetime
 from functools import partial
 import re
 
 from lxml import etree as ET
-from sqlalchemy.sql import select
+from sqlalchemy import func, select, and_, or_
 
-from carbon.db import persons, session
+from carbon.db import persons, orcids, engine
+
+
+PS_CODES_1 = ('CFAC', 'CFAN', 'CFAT', 'CFEL', 'CSRS', 'CSRR')
+PS_CODES_2 = ('COAC', 'COAR')
+TITLES = (
+    'ADJUNCT ASSOCIATE PROFESSOR', 'ADJUNCT PROFESSOR',
+    'ASSOCIATE PROFESSOR OF THE PRACTICE', 'INSTITUTE PROFESSOR (WOT)',
+    'INSTITUTE PROFESSOR EMERITUS', 'INSTRUCTOR', 'LECTURER', 'LECTURER II',
+    'PROFESSOR (WOT)', 'PROFESSOR EMERITUS', 'SENIOR LECTURER',
+    'VISITING ASSISTANT PROFESSOR', 'VISITING ASSOCIATE PROFESSOR',
+    'VISITING PROFESSOR', 'VISITING SCHOLAR', 'VISITING SCIENTIST',
+    'POSTDOCTORAL ASSOCIATE', 'POSTDOCTORAL FELLOW',
+    'SENIOR POSTDOCTORAL ASSOCIATE', 'VISITING ENGINEER', 'VISITING SCHOLAR',
+    'VISITING SCIENTIST',
+)
 
 
 def people():
@@ -15,8 +31,24 @@ def people():
 
     Returns an iterator of person dictionaries.
     """
-    sql = select([persons]).distinct('MIT_ID')
-    with session() as conn:
+    sql = select([persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
+                  persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
+                  persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
+                  persons.c.ORIGINAL_HIRE_DATE, persons.c.HR_ORG_UNIT_TITLE,
+                  persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID]) \
+        .select_from(persons.outerjoin(orcids)) \
+        .where(persons.c.EMAIL_ADDRESS != None) \
+        .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1)) \
+        .where(
+            or_(
+                persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES_1),
+                and_(
+                    persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES_2),
+                    func.upper(persons.c.JOB_TITLE).in_(TITLES)
+                )
+            )
+        )
+    with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
 
@@ -92,13 +124,23 @@ def person_feed(out):
 def _add_person(xf, person):
     record = ET.Element('record')
     add_child(record, 'field', person['MIT_ID'], name='[Proprietary_ID]')
-    add_child(record, 'field', person['KRB_NAME'], name='[Username]')
+    add_child(record, 'field', person['KRB_NAME_UPPERCASE'], name='[Username]')
     add_child(record, 'field', initials(person['FIRST_NAME'],
                                         person['MIDDLE_NAME']),
               name='[Initials]')
     add_child(record, 'field', person['LAST_NAME'], name='[LastName]')
     add_child(record, 'field', person['FIRST_NAME'], name='[FirstName]')
-    add_child(record, 'field', person['EMAIL'], name='[Email]')
+    add_child(record, 'field', person['EMAIL_ADDRESS'], name='[Email]')
     add_child(record, 'field', 'MIT', name='[AuthenticatingAuthority]')
     add_child(record, 'field', '1', name='[IsAcademic]')
+    add_child(record, 'field', '1', name='[IsCurrent]')
+    add_child(record, 'field', '0', name='[LoginAllowed]')
+    add_child(record, 'field', person['HR_ORG_UNIT_TITLE'],
+              name='[PrimaryGroupDescriptor]')
+    add_child(record, 'field', person['ORCID'], name='[Generic01]')
+    add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],
+              name='[Generic02]')
+    add_child(record, 'field',
+              person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
+              name='[ArriveDate]')
     xf.write(record)

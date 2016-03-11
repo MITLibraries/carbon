@@ -15,9 +15,14 @@ pytestmark = pytest.mark.usefixtures('load_data')
 def test_people_generates_people():
     peeps = list(people())
     person = peeps[0]
-    assert person['KRB_NAME'] == 'foobar'
+    assert person['KRB_NAME_UPPERCASE'] == 'FOOBAR'
     person = peeps[1]
-    assert person['KRB_NAME'] == 'thor'
+    assert person['KRB_NAME_UPPERCASE'] == 'THOR'
+
+
+def test_people_adds_orcids():
+    peeps = list(people())
+    assert peeps[0]['ORCID'] == 'http://example.com/1'
 
 
 def test_initials_returns_first_and_middle():
@@ -53,8 +58,10 @@ def test_person_feed_uses_namespace():
 def test_person_feed_adds_person(records, xml_records, E):
     b = BytesIO()
     xml = E.records(xml_records[0])
+    r = records[0]['person'].copy()
+    r.update(records[0]['orcid'])
     with person_feed(b) as f:
-        f(records[0])
+        f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
                                        xml_declaration=True)
 
@@ -62,7 +69,9 @@ def test_person_feed_adds_person(records, xml_records, E):
 def test_person_feed_uses_utf8_encoding(records, xml_records, E):
     b = BytesIO()
     xml = E.records(xml_records[1])
+    r = records[1]['person'].copy()
+    r.update(records[1]['orcid'])
     with person_feed(b) as f:
-        f(records[1])
+        f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
                                        xml_declaration=True)

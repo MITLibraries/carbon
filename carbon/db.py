@@ -1,23 +1,31 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from contextlib import contextmanager
 
-from sqlalchemy import (create_engine, Table, Column, String, Date, MetaData,)
+from sqlalchemy import (create_engine, Table, Column, String, Date, MetaData,
+                        ForeignKey)
 
 
 metadata = MetaData()
 
 
-persons = Table('library_person_lookup', metadata,
+persons = Table('HR_PERSON_EMPLOYEE_LIMITED', metadata,
                 Column('MIT_ID', String),
-                Column('KRB_NAME', String),
+                Column('KRB_NAME_UPPERCASE', String),
                 Column('FIRST_NAME', String),
-                Column('MIDDLE_NAME', String),
                 Column('LAST_NAME', String),
-                Column('EMAIL', String),
-                Column('START_DATE', Date),
-                Column('END_DATE', Date),
-                Column('DEPARTMENT_NAME', String))
+                Column('MIDDLE_NAME', String),
+                Column('EMAIL_ADDRESS', String),
+                Column('ORIGINAL_HIRE_DATE', Date),
+                Column('APPOINTMENT_END_DATE', Date),
+                Column('HR_ORG_UNIT_TITLE', String),
+                Column('PERSONNEL_SUBAREA_CODE', String),
+                Column('JOB_TITLE', String))
+
+
+orcids = Table('ORCID_TO_MITID', metadata,
+               Column('MIT_ID', String,
+                      ForeignKey('HR_PERSON_EMPLOYEE_LIMITED.MIT_ID')),
+               Column('ORCID', String))
 
 
 class Engine(object):
@@ -35,31 +43,6 @@ class Engine(object):
 
     def configure(self, conn):
         self._engine = self._engine or create_engine(conn)
-
-
-@contextmanager
-def session():
-    """Scoped session context for performing database operations.
-
-    The database engine needs to be configured before using a
-    session. For example::
-
-        from carbon import engine, session
-
-        engine.configure('sqlite:///:memory:')
-        with session() as s:
-            s.execute() ...
-    """
-    conn = engine().connect()
-    tx = conn.begin()
-    try:
-        yield conn
-        tx.commit()
-    except:
-        tx.rollback()
-        raise
-    finally:
-        conn.close()
 
 
 engine = Engine()
