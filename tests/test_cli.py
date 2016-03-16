@@ -19,7 +19,7 @@ def runner():
 
 def test_feed_returns_people(runner, E, xml_data):
     b = BytesIO()
-    res = runner.invoke(main, ['feed', '-o', b, 'sqlite://'])
+    res = runner.invoke(main, ['-o', b, 'sqlite://'])
     assert res.exit_code == 0
     assert b.getvalue() == \
         ET.tostring(xml_data, encoding="UTF-8", xml_declaration=True)
