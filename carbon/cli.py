@@ -7,17 +7,12 @@ from carbon import people, person_feed
 from carbon.db import engine
 
 
-@click.group()
+@click.command()
 @click.version_option()
-def main():
-    pass
-
-
-@main.command()
 @click.argument('db')
 @click.option('-o', '--out', help='Output file',
               default=click.get_binary_stream('stdout'))
-def feed(db, out):
+def main(db, out):
     """Generate a feed of person data.
 
     The data is pulled from a database identified by DB, which should
