@@ -1,0 +1,33 @@
+---
+person:
+    MIT_ID: "123456"
+    KRB_NAME_UPPERCASE: FOOBAR
+    FIRST_NAME: Foobar
+    MIDDLE_NAME: Baz
+    LAST_NAME: Gaz
+    EMAIL_ADDRESS: foobar@example.com
+    ORIGINAL_HIRE_DATE: !!timestamp 2001-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2010-01-01 00:00:00.0
+    JOB_TITLE: Adjunct Professor
+    PERSONNEL_SUBAREA_CODE: CFAC
+    HR_ORG_UNIT_TITLE: Chemisty
+orcid:
+    MIT_ID: "123456"
+    ORCID: http://example.com/1
+
+---
+person:
+    MIT_ID: "098754"
+    KRB_NAME_UPPERCASE: THOR
+    FIRST_NAME: Þorgerðr
+    MIDDLE_NAME: Hǫlgabrúðr
+    LAST_NAME: Hammerson
+    EMAIL_ADDRESS: thor@example.com
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
+    JOB_TITLE: Visiting Engineer
+    PERSONNEL_SUBAREA_CODE: COAC
+    HR_ORG_UNIT_TITLE: Nuclear Science
+orcid:
+    MIT_ID: "098754"
+    ORCID: http://example.com/2

@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-import json
+from contextlib import closing
 import os
 
 from lxml.builder import ElementMaker
 import pytest
+import yaml
 
-from carbon.db import engine, session, metadata, persons
+from carbon.db import engine, metadata, persons, orcids
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -19,20 +20,24 @@ def app_init():
 @pytest.fixture(scope="session")
 def records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
-    data = os.path.join(current_dir, 'fixtures/data.json')
+    data = os.path.join(current_dir, 'fixtures/data.yml')
     with open(data) as fp:
-        r = json.load(fp)
+        r = list(yaml.load_all(fp))
     return r
 
 
 @pytest.yield_fixture
 def load_data(records):
-    with session() as s:
-        s.execute(persons.delete())
-        s.execute(persons.insert(), records)
+    with closing(engine().connect()) as conn:
+        conn.execute(persons.delete())
+        conn.execute(orcids.delete())
+        for r in records:
+            conn.execute(persons.insert(), r['person'])
+            conn.execute(orcids.insert(), r['orcid'])
     yield
-    with session() as s:
-        s.execute(persons.delete())
+    with closing(engine().connect()) as conn:
+        conn.execute(persons.delete())
+        conn.execute(orcids.delete())
 
 
 @pytest.fixture
@@ -40,23 +45,35 @@ def xml_records(E):
     return [
         E.record(
             E.field('123456', {'name': '[Proprietary_ID]'}),
-            E.field('foobar', {'name': '[Username]'}),
+            E.field('FOOBAR', {'name': '[Username]'}),
             E.field('F B', {'name': '[Initials]'}),
             E.field('Gaz', {'name': '[LastName]'}),
             E.field('Foobar', {'name': '[FirstName]'}),
             E.field('foobar@example.com', {'name': '[Email]'}),
             E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
-            E.field('1', {'name': '[IsAcademic]'})
+            E.field('1', {'name': '[IsAcademic]'}),
+            E.field('1', {'name': '[IsCurrent]'}),
+            E.field('0', {'name': '[LoginAllowed]'}),
+            E.field('Chemisty', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('http://example.com/1', {'name': '[Generic01]'}),
+            E.field('CFAC', {'name': '[Generic02]'}),
+            E.field('2001-01-01', {'name': '[ArriveDate]'})
         ),
         E.record(
             E.field('098754', name='[Proprietary_ID]'),
-            E.field('thor', name='[Username]'),
+            E.field('THOR', name='[Username]'),
             E.field(u'Þ H', name='[Initials]'),
             E.field('Hammerson', name='[LastName]'),
             E.field(u'Þorgerðr', name='[FirstName]'),
             E.field('thor@example.com', name='[Email]'),
             E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
-            E.field('1', {'name': '[IsAcademic]'})
+            E.field('1', {'name': '[IsAcademic]'}),
+            E.field('1', {'name': '[IsCurrent]'}),
+            E.field('0', {'name': '[LoginAllowed]'}),
+            E.field('Nuclear Science', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('http://example.com/2', {'name': '[Generic01]'}),
+            E.field('COAC', {'name': '[Generic02]'}),
+            E.field('2015-01-01', {'name': '[ArriveDate]'})
         )
     ]
 
