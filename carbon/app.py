@@ -6,23 +6,38 @@ from functools import partial
 import re
 
 from lxml import etree as ET
-from sqlalchemy import func, select, and_, or_
+from sqlalchemy import func, select
 
-from carbon.db import persons, orcids, engine
+from carbon.db import persons, orcids, dlcs, engine
 
-
-PS_CODES_1 = ('CFAC', 'CFAN', 'CFAT', 'CFEL', 'CSRS', 'CSRR')
-PS_CODES_2 = ('COAC', 'COAR')
+AREAS = (
+    'ARCHITECTURE & PLANNING AREA', 'ENGINEERING AREA',
+    'HUMANITIES, ARTS, & SOCIAL SCIENCES AREA', 'SCIENCE AREA',
+    'SLOAN SCHOOL OF MANAGEMENT AREA', 'VP RESEARCH',
+)
+PS_CODES = ('CFAN', 'CFAT', 'CFEL', 'CSRS', 'CSRR', 'COAC', 'COAR',)
 TITLES = (
-    'ADJUNCT ASSOCIATE PROFESSOR', 'ADJUNCT PROFESSOR',
-    'ASSOCIATE PROFESSOR OF THE PRACTICE', 'INSTITUTE PROFESSOR (WOT)',
-    'INSTITUTE PROFESSOR EMERITUS', 'INSTRUCTOR', 'LECTURER', 'LECTURER II',
-    'PROFESSOR (WOT)', 'PROFESSOR EMERITUS', 'SENIOR LECTURER',
+    'ADJUNCT ASSOCIATE PROFESSOR', 'ADJUNCT PROFESSOR', 'ASSISTANT PROFESSOR',
+    'ASSOCIATE PROFESSOR', 'ASSOCIATE PROFESSOR (NOTT)',
+    'ASSOCIATE PROFESSOR (WOT)', 'ASSOCIATE PROFESSOR OF THE PRACTICE',
+    'ASSOCIATE PROFESSOR/COACH', 'ASSOCIATE PROFESSOR/SENIOR COACH', 'FELLOW',
+    'GRADUATE RESIDENT ADVISOR', 'INSTITUTE OFFICIAL - EMERITUS',
+    'INSTITUTE PROFESSOR (WOT)', 'INSTITUTE PROFESSOR EMERITUS', 'INSTRUCTOR',
+    'INSTRUCTOR/COACH', 'LECTURER', 'LECTURER II', 'POSTDOCTORAL ASSOCIATE',
+    'POSTDOCTORAL FELLOW', 'PRINCIPAL RESEARCH ASSOCIATE',
+    'PRINCIPAL RESEARCH ENGINEER', 'PRINCIPAL RESEARCH SCIENTIST', 'PROFESSOR',
+    'PROFESSOR (NOTT)', 'PROFESSOR (WOT)', 'PROFESSOR EMERITUS',
+    'PROFESSOR OF THE PRACTICE', 'RESEARCH ENGINEER', 'RESEARCH FELLOW',
+    'RESEARCH SCIENTIST', 'RESEARCH SPECIALIST', 'SENIOR LECTURER',
+    'SENIOR POSTDOCTORAL ASSOCIATE', 'SENIOR POSTDOCTORAL FELLOW',
+    'SENIOR RESEARCH ASSOCIATE', 'SENIOR RESEARCH ENGINEER',
+    'SENIOR RESEARCH SCIENTIST', 'SENIOR RESEARCH SCIENTIST (MAP)',
+    'SPONSORED RESEARCH TECHNICAL STAFF',
+    'SPONSORED RESEARCH TECHNICAL SUPERVISOR',
     'VISITING ASSISTANT PROFESSOR', 'VISITING ASSOCIATE PROFESSOR',
-    'VISITING PROFESSOR', 'VISITING SCHOLAR', 'VISITING SCIENTIST',
-    'POSTDOCTORAL ASSOCIATE', 'POSTDOCTORAL FELLOW',
-    'SENIOR POSTDOCTORAL ASSOCIATE', 'VISITING ENGINEER', 'VISITING SCHOLAR',
-    'VISITING SCIENTIST',
+    'VISITING ENGINEER', 'VISITING LECTURER', 'VISITING PROFESSOR',
+    'VISITING RESEARCH ASSOCIATE', 'VISITING SCHOLAR', 'VISITING SCIENTIST',
+    'VISITING SENIOR LECTURER',
 )
 
 
@@ -34,20 +49,18 @@ def people():
     sql = select([persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
-                  persons.c.ORIGINAL_HIRE_DATE, persons.c.HR_ORG_UNIT_TITLE,
+                  persons.c.ORIGINAL_HIRE_DATE, dlcs.c.HR_ORG_LEVEL4_NAME,
                   persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID]) \
         .select_from(persons.outerjoin(orcids)) \
+        .where(dlcs.c.HR_ORG_UNIT_ID == persons.c.HR_ORG_UNIT_ID) \
         .where(persons.c.EMAIL_ADDRESS != None) \
+        .where(persons.c.LAST_NAME != None) \
+        .where(persons.c.KRB_NAME_UPPERCASE != None) \
+        .where(persons.c.MIT_ID != None) \
         .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1)) \
-        .where(
-            or_(
-                persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES_1),
-                and_(
-                    persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES_2),
-                    func.upper(persons.c.JOB_TITLE).in_(TITLES)
-                )
-            )
-        )
+        .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS)) \
+        .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES)) \
+        .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
     with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
@@ -135,7 +148,7 @@ def _add_person(xf, person):
     add_child(record, 'field', '1', name='[IsAcademic]')
     add_child(record, 'field', '1', name='[IsCurrent]')
     add_child(record, 'field', '0', name='[LoginAllowed]')
-    add_child(record, 'field', person['HR_ORG_UNIT_TITLE'],
+    add_child(record, 'field', person['HR_ORG_LEVEL4_NAME'],
               name='[PrimaryGroupDescriptor]')
     add_child(record, 'field', person['ORCID'], name='[Generic01]')
     add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],

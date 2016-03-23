@@ -17,9 +17,17 @@ persons = Table('HR_PERSON_EMPLOYEE_LIMITED', metadata,
                 Column('EMAIL_ADDRESS', String),
                 Column('ORIGINAL_HIRE_DATE', Date),
                 Column('APPOINTMENT_END_DATE', Date),
-                Column('HR_ORG_UNIT_TITLE', String),
                 Column('PERSONNEL_SUBAREA_CODE', String),
-                Column('JOB_TITLE', String))
+                Column('JOB_TITLE', String),
+                Column('HR_ORG_UNIT_ID', String),
+                )
+
+dlcs = Table('HR_ORG_UNIT', metadata,
+             Column('HR_ORG_UNIT_ID', String,
+                    ForeignKey('HR_PERSON_EMPLOYEE_LIMITED.HR_ORG_UNIT_ID')),
+             Column('HR_ORG_LEVEL4_NAME', String),
+             Column('ORG_HIER_SCHOOL_AREA_NAME', String),
+             )
 
 
 orcids = Table('ORCID_TO_MITID', metadata,

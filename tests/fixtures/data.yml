@@ -9,12 +9,15 @@ person:
     ORIGINAL_HIRE_DATE: !!timestamp 2001-01-01 00:00:00.0
     APPOINTMENT_END_DATE: !!timestamp 2010-01-01 00:00:00.0
     JOB_TITLE: Adjunct Professor
-    PERSONNEL_SUBAREA_CODE: CFAC
-    HR_ORG_UNIT_TITLE: Chemisty
+    PERSONNEL_SUBAREA_CODE: CFAT
+    HR_ORG_UNIT_ID: "1"
 orcid:
     MIT_ID: "123456"
     ORCID: http://example.com/1
-
+dlc:
+    HR_ORG_UNIT_ID: "1"
+    HR_ORG_LEVEL4_NAME: Chemistry
+    ORG_HIER_SCHOOL_AREA_NAME: SCIENCE AREA
 ---
 person:
     MIT_ID: "098754"
@@ -27,7 +30,87 @@ person:
     APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
-    HR_ORG_UNIT_TITLE: Nuclear Science
+    HR_ORG_UNIT_ID: "01239"
 orcid:
     MIT_ID: "098754"
     ORCID: http://example.com/2
+dlc:
+    HR_ORG_UNIT_ID: "01239"
+    HR_ORG_LEVEL4_NAME: Nuclear Science
+    ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+---
+person:
+    MIT_ID: "987654"
+    KRB_NAME_UPPERCASE: POPCORN
+    FIRST_NAME: NoEmail
+    MIDDLE_NAME: Says
+    LAST_NAME: Super
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
+    JOB_TITLE: Visiting Engineer
+    PERSONNEL_SUBAREA_CODE: COAC
+    HR_ORG_UNIT_ID: "3"
+orcid:
+    MIT_ID: "987654"
+    ORCID: http://example.com/3
+dlc:
+    HR_ORG_UNIT_ID: "3"
+    HR_ORG_LEVEL4_NAME: Nuclear Science
+    ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+---
+person:
+    MIT_ID: "456789"
+    FIRST_NAME: NoKerbName
+    MIDDLE_NAME: One
+    LAST_NAME: Else
+    EMAIL_ADDRESS: thor@example.com
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
+    JOB_TITLE: Visiting Engineer
+    PERSONNEL_SUBAREA_CODE: COAC
+    HR_ORG_UNIT_ID: "4"
+orcid:
+    MIT_ID: "456789"
+    ORCID: http://example.com/4
+dlc:
+    HR_ORG_UNIT_ID: "4"
+    HR_ORG_LEVEL4_NAME: Nuclear Science
+    ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+---
+person:
+    MIT_ID: "654987"
+    KRB_NAME_UPPERCASE: NOLASTNAME
+    FIRST_NAME: NoLastName
+    MIDDLE_NAME: One
+    EMAIL_ADDRESS: thor@example.com
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
+    JOB_TITLE: Visiting Engineer
+    PERSONNEL_SUBAREA_CODE: COAC
+    HR_ORG_UNIT_ID: "5"
+orcid:
+    MIT_ID: "654987"
+    ORCID: http://example.com/5
+dlc:
+    HR_ORG_UNIT_ID: "5"
+    HR_ORG_LEVEL4_NAME: Nuclear Science
+    ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+---
+person:
+    KRB_NAME_UPPERCASE: NOMITID
+    FIRST_NAME: NoMitId
+    MIDDLE_NAME: One
+    LAST_NAME: Else
+    EMAIL_ADDRESS: thor@example.com
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
+    JOB_TITLE: Visiting Engineer
+    PERSONNEL_SUBAREA_CODE: COAC
+    HR_ORG_UNIT_ID: "6"
+orcid:
+    MIT_ID: "NOMITID"
+    ORCID: http://example.com/6
+dlc:
+    HR_ORG_UNIT_ID: "6"
+    HR_ORG_LEVEL4_NAME: Nuclear Science
+    ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
