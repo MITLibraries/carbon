@@ -51,8 +51,7 @@ def people():
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
                   persons.c.ORIGINAL_HIRE_DATE, dlcs.c.HR_ORG_LEVEL4_NAME,
                   persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID]) \
-        .select_from(persons.outerjoin(orcids)) \
-        .where(dlcs.c.HR_ORG_UNIT_ID == persons.c.HR_ORG_UNIT_ID) \
+        .select_from(persons.outerjoin(orcids).join(dlcs)) \
         .where(persons.c.EMAIL_ADDRESS != None) \
         .where(persons.c.LAST_NAME != None) \
         .where(persons.c.KRB_NAME_UPPERCASE != None) \
