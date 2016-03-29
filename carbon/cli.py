@@ -7,10 +7,13 @@ from carbon import people, person_feed
 from carbon.db import engine
 
 
-@click.group()
+@click.command()
 @click.version_option()
 @click.argument('db')
-def main(db):
+@click.argument('feed_type', type=click.Choice(['people', 'articles']))
+@click.option('-o', '--out', help='Output file', type=click.File('wb'),
+              default='-')
+def main(db, feed_type, out):
     """Generate feeds for Symplectic Elements.
 
     The data is pulled from a database identified by DB, which should
@@ -18,17 +21,12 @@ def main(db):
 
     oracle://<username>:<password>@<server>:1521/<sid>
 
-    The feed will be printed to stdout.
+    The feed will be printed to stdout if OUT is not specified.
 
-    See the subcommands for specific feed information.
+    FEED_TYPE should be 'people'.
     """
     engine.configure(db)
-
-
-@main.command()
-def hr():
-    """Generate a feed of people data."""
-    out = click.get_binary_stream('stdout')
-    with person_feed(out) as f:
-        for person in people():
-            f(person)
+    if feed_type == 'people':
+        with person_feed(out) as f:
+            for person in people():
+                f(person)

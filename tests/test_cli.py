@@ -17,7 +17,7 @@ def runner():
 
 
 def test_hr_returns_people(runner, E, xml_data):
-    res = runner.invoke(main, ['sqlite://', 'hr'])
+    res = runner.invoke(main, ['sqlite://', 'people'])
     assert res.exit_code == 0
     assert res.output_bytes == \
         ET.tostring(xml_data, encoding="UTF-8", xml_declaration=True)
