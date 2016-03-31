@@ -49,7 +49,7 @@ def people():
     sql = select([persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
-                  persons.c.ORIGINAL_HIRE_DATE, dlcs.c.HR_ORG_LEVEL4_NAME,
+                  persons.c.ORIGINAL_HIRE_DATE, dlcs.c.DLC_NAME,
                   persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID]) \
         .select_from(persons.outerjoin(orcids).join(dlcs)) \
         .where(persons.c.EMAIL_ADDRESS != None) \
@@ -148,7 +148,7 @@ def _add_person(xf, person):
     add_child(record, 'field', '1', name='[IsAcademic]')
     add_child(record, 'field', '1', name='[IsCurrent]')
     add_child(record, 'field', '0', name='[LoginAllowed]')
-    add_child(record, 'field', person['HR_ORG_LEVEL4_NAME'],
+    add_child(record, 'field', person['DLC_NAME'],
               name='[PrimaryGroupDescriptor]')
     add_child(record, 'field', person['ORCID'], name='[Generic01]')
     add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],

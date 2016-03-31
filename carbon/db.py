@@ -25,8 +25,8 @@ persons = Table('HR_PERSON_EMPLOYEE_LIMITED', metadata,
 dlcs = Table('HR_ORG_UNIT', metadata,
              Column('HR_ORG_UNIT_ID', String,
                     ForeignKey('HR_PERSON_EMPLOYEE_LIMITED.HR_ORG_UNIT_ID')),
-             Column('HR_ORG_LEVEL4_NAME', String),
              Column('ORG_HIER_SCHOOL_AREA_NAME', String),
+             Column('DLC_NAME', String),
              )
 
 
