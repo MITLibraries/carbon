@@ -26,7 +26,7 @@ TITLES = (
     'PRINCIPAL RESEARCH ASSOCIATE', 'PRINCIPAL RESEARCH ENGINEER',
     'PRINCIPAL RESEARCH SCIENTIST', 'PROFESSOR', 'PROFESSOR (NOTT)',
     'PROFESSOR (WOT)', 'PROFESSOR EMERITUS', 'PROFESSOR OF THE PRACTICE',
-    'RESEARCH AFFILIATE', 'RESEARCH ASSOCIATE', 'RESEARCH ENGINEER',
+    'RESEARCH ASSOCIATE', 'RESEARCH ENGINEER',
     'RESEARCH FELLOW', 'RESEARCH SCIENTIST', 'RESEARCH SPECIALIST',
     'SENIOR LECTURER', 'SENIOR POSTDOCTORAL ASSOCIATE',
     'SENIOR POSTDOCTORAL FELLOW', 'SENIOR RESEARCH ASSOCIATE',
@@ -147,7 +147,7 @@ def _add_person(xf, person):
     add_child(record, 'field', 'MIT', name='[AuthenticatingAuthority]')
     add_child(record, 'field', '1', name='[IsAcademic]')
     add_child(record, 'field', '1', name='[IsCurrent]')
-    add_child(record, 'field', '0', name='[LoginAllowed]')
+    add_child(record, 'field', '1', name='[LoginAllowed]')
     add_child(record, 'field', person['DLC_NAME'],
               name='[PrimaryGroupDescriptor]')
     add_child(record, 'field', person['ORCID'], name='[Generic01]')
