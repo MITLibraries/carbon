@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from io import BytesIO
 
 from click.testing import CliRunner
 from lxml import etree as ET
@@ -17,9 +16,8 @@ def runner():
     return CliRunner()
 
 
-def test_feed_returns_people(runner, E, xml_data):
-    b = BytesIO()
-    res = runner.invoke(main, ['-o', b, 'sqlite://'])
+def test_hr_returns_people(runner, E, xml_data):
+    res = runner.invoke(main, ['sqlite://', 'people'])
     assert res.exit_code == 0
-    assert b.getvalue() == \
+    assert res.output_bytes == \
         ET.tostring(xml_data, encoding="UTF-8", xml_declaration=True)
