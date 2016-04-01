@@ -7,7 +7,7 @@ from lxml.builder import ElementMaker
 import pytest
 import yaml
 
-from carbon.db import engine, metadata, persons, orcids
+from carbon.db import engine, metadata, persons, orcids, dlcs
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -31,13 +31,16 @@ def load_data(records):
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
         conn.execute(orcids.delete())
+        conn.execute(dlcs.delete())
         for r in records:
             conn.execute(persons.insert(), r['person'])
             conn.execute(orcids.insert(), r['orcid'])
+            conn.execute(dlcs.insert(), r['dlc'])
     yield
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
         conn.execute(orcids.delete())
+        conn.execute(dlcs.delete())
 
 
 @pytest.fixture
@@ -53,10 +56,10 @@ def xml_records(E):
             E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
             E.field('1', {'name': '[IsAcademic]'}),
             E.field('1', {'name': '[IsCurrent]'}),
-            E.field('0', {'name': '[LoginAllowed]'}),
-            E.field('Chemisty', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('1', {'name': '[LoginAllowed]'}),
+            E.field('Chemistry', {'name': '[PrimaryGroupDescriptor]'}),
             E.field('http://example.com/1', {'name': '[Generic01]'}),
-            E.field('CFAC', {'name': '[Generic02]'}),
+            E.field('CFAT', {'name': '[Generic02]'}),
             E.field('2001-01-01', {'name': '[ArriveDate]'})
         ),
         E.record(
@@ -69,7 +72,7 @@ def xml_records(E):
             E.field('MIT', {'name': '[AuthenticatingAuthority]'}),
             E.field('1', {'name': '[IsAcademic]'}),
             E.field('1', {'name': '[IsCurrent]'}),
-            E.field('0', {'name': '[LoginAllowed]'}),
+            E.field('1', {'name': '[LoginAllowed]'}),
             E.field('Nuclear Science', {'name': '[PrimaryGroupDescriptor]'}),
             E.field('http://example.com/2', {'name': '[Generic01]'}),
             E.field('COAC', {'name': '[Generic02]'}),

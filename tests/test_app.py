@@ -25,6 +25,30 @@ def test_people_adds_orcids():
     assert peeps[0]['ORCID'] == 'http://example.com/1'
 
 
+def test_people_excludes_no_emails():
+    peeps = list(people())
+    no_email = [x for x in peeps if x['EMAIL_ADDRESS'] is not None]
+    assert len(no_email) == len(peeps)
+
+
+def test_people_excludes_no_lastname():
+    peeps = list(people())
+    no_email = [x for x in peeps if x['LAST_NAME'] is not None]
+    assert len(no_email) == len(peeps)
+
+
+def test_people_excludes_no_kerberos():
+    peeps = list(people())
+    no_email = [x for x in peeps if x['KRB_NAME_UPPERCASE'] is not None]
+    assert len(no_email) == len(peeps)
+
+
+def test_people_excludes_no_mitid():
+    peeps = list(people())
+    no_email = [x for x in peeps if x['MIT_ID'] is not None]
+    assert len(no_email) == len(peeps)
+
+
 def test_initials_returns_first_and_middle():
     assert initials('Foo', 'Bar') == 'F B'
     assert initials('Foo') == 'F'
@@ -60,6 +84,7 @@ def test_person_feed_adds_person(records, xml_records, E):
     xml = E.records(xml_records[0])
     r = records[0]['person'].copy()
     r.update(records[0]['orcid'])
+    r.update(records[0]['dlc'])
     with person_feed(b) as f:
         f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
@@ -71,6 +96,7 @@ def test_person_feed_uses_utf8_encoding(records, xml_records, E):
     xml = E.records(xml_records[1])
     r = records[1]['person'].copy()
     r.update(records[1]['orcid'])
+    r.update(records[1]['dlc'])
     with person_feed(b) as f:
         f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
