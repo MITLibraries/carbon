@@ -2,7 +2,7 @@
 from __future__ import absolute_import
 
 from sqlalchemy import (create_engine, Table, Column, String, Date, MetaData,
-                        ForeignKey)
+                        ForeignKey, Numeric, Text)
 
 
 metadata = MetaData()
@@ -34,6 +34,26 @@ orcids = Table('ORCID_TO_MITID', metadata,
                Column('MIT_ID', String,
                       ForeignKey('HR_PERSON_EMPLOYEE_LIMITED.MIT_ID')),
                Column('ORCID', String))
+
+
+aa_articles = Table('AA_ARTICLE', metadata,
+                    Column('AA_MATCH_SCORE', Numeric(3, 1)),
+                    Column('ARTICLE_ID', String),
+                    Column('ARTICLE_TITLE', String),
+                    Column('ARTICLE_YEAR', String),
+                    Column('AUTHORS', Text),
+                    Column('DOI', String),
+                    Column('ISSN_ELECTRONIC', String),
+                    Column('ISSN_PRINT', String),
+                    Column('IS_CONFERENCE_PROCEEDING', String),
+                    Column('JOURNAL_FIRST_PAGE', String),
+                    Column('JOURNAL_LAST_PAGE', String),
+                    Column('JOURNAL_ISSUE', String),
+                    Column('JOURNAL_NAME', String),
+                    Column('JOURNAL_VOLUME', String),
+                    Column('MIT_ID', String),
+                    Column('PUBLISHER', String),
+                    )
 
 
 class Engine(object):

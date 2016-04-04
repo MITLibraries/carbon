@@ -8,4 +8,4 @@
 
 __version__ = '0.2.0'
 
-from .app import people, person_feed
+from .app import people, person_feed, articles, article_feed
