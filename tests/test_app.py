@@ -5,8 +5,9 @@ from io import BytesIO
 from lxml import etree as ET
 import pytest
 
-from carbon import people
-from carbon.app import person_feed, ns, NSMAP, add_child, initials
+from carbon import people, articles
+from carbon.app import (person_feed, ns, NSMAP, add_child, initials,
+                        article_feed,)
 
 
 pytestmark = pytest.mark.usefixtures('load_data')
@@ -100,4 +101,17 @@ def test_person_feed_uses_utf8_encoding(records, xml_records, E):
     with person_feed(b) as f:
         f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
+                                       xml_declaration=True)
+
+
+def test_articles_generates_articles():
+    arts = list(articles())
+    assert 'Yawning Abyss of Chaos' in arts[0]['ARTICLE_TITLE']
+
+
+def test_article_feed_adds_article(aa_data, articles_data):
+    b = BytesIO()
+    with article_feed(b) as f:
+        f(aa_data[0])
+    assert b.getvalue() == ET.tostring(articles_data, encoding='UTF-8',
                                        xml_declaration=True)

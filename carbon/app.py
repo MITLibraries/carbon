@@ -8,7 +8,7 @@ import re
 from lxml import etree as ET
 from sqlalchemy import func, select
 
-from carbon.db import persons, orcids, dlcs, engine
+from carbon.db import persons, orcids, dlcs, engine, aa_articles
 
 AREAS = (
     'ARCHITECTURE & PLANNING AREA', 'ENGINEERING AREA',
@@ -61,6 +61,17 @@ def people():
         .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS)) \
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES)) \
         .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
+    with closing(engine().connect()) as conn:
+        for row in conn.execute(sql):
+            yield dict(zip(row.keys(), row))
+
+
+def articles():
+    """An article generator.
+
+    Returns an iterator over the AA_ARTICLE table.
+    """
+    sql = select([aa_articles])
     with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
@@ -132,6 +143,37 @@ def person_feed(out):
         xf.write_declaration()
         with xf.element(ns('records'), nsmap=NSMAP):
             yield partial(_add_person, xf)
+
+
+@contextmanager
+def article_feed(out):
+    """Generate XML feed of articles."""
+    with ET.xmlfile(out, encoding='UTF-8') as xf:
+        xf.write_declaration()
+        with xf.element('articles'):
+            yield partial(_add_article, xf)
+
+
+def _add_article(xf, article):
+    record = ET.Element('article')
+    add_child(record, 'AA_MATCH_SCORE', str(article['AA_MATCH_SCORE']))
+    add_child(record, 'ARTICLE_ID', article['ARTICLE_ID'])
+    add_child(record, 'ARTICLE_TITLE', article['ARTICLE_TITLE'])
+    add_child(record, 'ARTICLE_YEAR', article['ARTICLE_YEAR'])
+    add_child(record, 'AUTHORS', article['AUTHORS'])
+    add_child(record, 'DOI', article['DOI'])
+    add_child(record, 'ISSN_ELECTRONIC', article['ISSN_ELECTRONIC'])
+    add_child(record, 'ISSN_PRINT', article['ISSN_PRINT'])
+    add_child(record, 'IS_CONFERENCE_PROCEEDING',
+              article['IS_CONFERENCE_PROCEEDING'])
+    add_child(record, 'JOURNAL_FIRST_PAGE', article['JOURNAL_FIRST_PAGE'])
+    add_child(record, 'JOURNAL_LAST_PAGE', article['JOURNAL_LAST_PAGE'])
+    add_child(record, 'JOURNAL_ISSUE', article['JOURNAL_ISSUE'])
+    add_child(record, 'JOURNAL_VOLUME', article['JOURNAL_VOLUME'])
+    add_child(record, 'JOURNAL_NAME', article['JOURNAL_NAME'])
+    add_child(record, 'MIT_ID', article['MIT_ID'])
+    add_child(record, 'PUBLISHER', article['PUBLISHER'])
+    xf.write(record)
 
 
 def _add_person(xf, person):

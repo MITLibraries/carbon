@@ -3,11 +3,11 @@ from __future__ import absolute_import
 from contextlib import closing
 import os
 
-from lxml.builder import ElementMaker
+from lxml.builder import ElementMaker, E as B
 import pytest
 import yaml
 
-from carbon.db import engine, metadata, persons, orcids, dlcs
+from carbon.db import engine, metadata, persons, orcids, dlcs, aa_articles
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -26,21 +26,33 @@ def records():
     return r
 
 
+@pytest.fixture(scope="session")
+def aa_data():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data = os.path.join(current_dir, 'fixtures/articles.yml')
+    with open(data) as fp:
+        r = list(yaml.load_all(fp))
+    return r
+
+
 @pytest.yield_fixture
-def load_data(records):
+def load_data(records, aa_data):
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
         conn.execute(orcids.delete())
         conn.execute(dlcs.delete())
+        conn.execute(aa_articles.delete())
         for r in records:
             conn.execute(persons.insert(), r['person'])
             conn.execute(orcids.insert(), r['orcid'])
             conn.execute(dlcs.insert(), r['dlc'])
+        conn.execute(aa_articles.insert(), aa_data)
     yield
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
         conn.execute(orcids.delete())
         conn.execute(dlcs.delete())
+        conn.execute(aa_articles.delete())
 
 
 @pytest.fixture
@@ -90,3 +102,27 @@ def xml_data(E, xml_records):
 def E():
     return ElementMaker(namespace='http://www.symplectic.co.uk/hrimporter',
                         nsmap={None: 'http://www.symplectic.co.uk/hrimporter'})
+
+
+@pytest.fixture
+def articles_data(aa_data):
+    return B.articles(
+        B.article(
+            B.AA_MATCH_SCORE('0.9'),
+            B.ARTICLE_ID('1234567'),
+            B.ARTICLE_TITLE('Interaction between hatsopoulos microfluids and the Yawning Abyss of Chaos.'),
+            B.ARTICLE_YEAR('1999'),
+            B.AUTHORS('McRandallson, Randall M.|Lord, Dark'),
+            B.DOI('10.0000/1234LETTERS56'),
+            B.ISSN_ELECTRONIC('0987654'),
+            B.ISSN_PRINT('01234567'),
+            B.IS_CONFERENCE_PROCEEDING('0'),
+            B.JOURNAL_FIRST_PAGE('666'),
+            B.JOURNAL_LAST_PAGE('666'),
+            B.JOURNAL_ISSUE('10'),
+            B.JOURNAL_VOLUME('1'),
+            B.JOURNAL_NAME('Bunnies'),
+            B.MIT_ID('123456789'),
+            B.PUBLISHER('MIT Press')
+            )
+        )

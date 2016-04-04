@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import click
 
-from carbon import people, person_feed
+from carbon import people, person_feed, articles, article_feed
 from carbon.db import engine
 
 
@@ -23,10 +23,14 @@ def main(db, feed_type, out):
 
     The feed will be printed to stdout if OUT is not specified.
 
-    FEED_TYPE should be 'people'.
+    FEED_TYPE should be 'people' or 'articles'.
     """
     engine.configure(db)
     if feed_type == 'people':
         with person_feed(out) as f:
             for person in people():
                 f(person)
+    elif feed_type == 'articles':
+        with article_feed(out) as f:
+            for article in articles():
+                f(article)
