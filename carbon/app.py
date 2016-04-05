@@ -150,12 +150,12 @@ def article_feed(out):
     """Generate XML feed of articles."""
     with ET.xmlfile(out, encoding='UTF-8') as xf:
         xf.write_declaration()
-        with xf.element('articles'):
+        with xf.element('ARTICLES'):
             yield partial(_add_article, xf)
 
 
 def _add_article(xf, article):
-    record = ET.Element('article')
+    record = ET.Element('ARTICLE')
     add_child(record, 'AA_MATCH_SCORE', str(article['AA_MATCH_SCORE']))
     add_child(record, 'ARTICLE_ID', article['ARTICLE_ID'])
     add_child(record, 'ARTICLE_TITLE', article['ARTICLE_TITLE'])

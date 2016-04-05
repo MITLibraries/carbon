@@ -106,8 +106,8 @@ def E():
 
 @pytest.fixture
 def articles_data(aa_data):
-    return B.articles(
-        B.article(
+    return B.ARTICLES(
+        B.ARTICLE(
             B.AA_MATCH_SCORE('0.9'),
             B.ARTICLE_ID('1234567'),
             B.ARTICLE_TITLE('Interaction between hatsopoulos microfluids and the Yawning Abyss of Chaos.'),
