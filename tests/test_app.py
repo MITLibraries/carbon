@@ -115,3 +115,8 @@ def test_article_feed_adds_article(aa_data, articles_data):
         f(aa_data[0])
     assert b.getvalue() == ET.tostring(articles_data, encoding='UTF-8',
                                        xml_declaration=True)
+
+
+def test_articles_skips_articles_without_required_fields():
+    arts = list(articles())
+    assert len(arts) == 1
