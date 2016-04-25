@@ -71,7 +71,11 @@ def articles():
 
     Returns an iterator over the AA_ARTICLE table.
     """
-    sql = select([aa_articles])
+    sql = select([aa_articles]) \
+        .where(aa_articles.c.ARTICLE_ID != None) \
+        .where(aa_articles.c.ARTICLE_TITLE != None) \
+        .where(aa_articles.c.DOI != None) \
+        .where(aa_articles.c.MIT_ID != None)
     with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
