@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+import os
 
 from sqlalchemy import (create_engine, Table, Column, String, Date, MetaData,
-                        ForeignKey, Numeric, Text)
+                        ForeignKey, Numeric, Text, Unicode, UnicodeText)
 
+
+os.environ['NLS_LANG'] = 'AMERICAN_AMERICA.UTF8'
 
 metadata = MetaData()
 
@@ -11,9 +14,9 @@ metadata = MetaData()
 persons = Table('HR_PERSON_EMPLOYEE_LIMITED', metadata,
                 Column('MIT_ID', String),
                 Column('KRB_NAME_UPPERCASE', String),
-                Column('FIRST_NAME', String),
-                Column('LAST_NAME', String),
-                Column('MIDDLE_NAME', String),
+                Column('FIRST_NAME', Unicode),
+                Column('LAST_NAME', Unicode),
+                Column('MIDDLE_NAME', Unicode),
                 Column('EMAIL_ADDRESS', String),
                 Column('ORIGINAL_HIRE_DATE', Date),
                 Column('APPOINTMENT_END_DATE', Date),
@@ -39,20 +42,20 @@ orcids = Table('ORCID_TO_MITID', metadata,
 aa_articles = Table('AA_ARTICLE', metadata,
                     Column('AA_MATCH_SCORE', Numeric(3, 1)),
                     Column('ARTICLE_ID', String),
-                    Column('ARTICLE_TITLE', String),
+                    Column('ARTICLE_TITLE', Unicode),
                     Column('ARTICLE_YEAR', String),
-                    Column('AUTHORS', Text),
+                    Column('AUTHORS', UnicodeText),
                     Column('DOI', String),
                     Column('ISSN_ELECTRONIC', String),
                     Column('ISSN_PRINT', String),
                     Column('IS_CONFERENCE_PROCEEDING', String),
                     Column('JOURNAL_FIRST_PAGE', String),
                     Column('JOURNAL_LAST_PAGE', String),
-                    Column('JOURNAL_ISSUE', String),
-                    Column('JOURNAL_NAME', String),
-                    Column('JOURNAL_VOLUME', String),
+                    Column('JOURNAL_ISSUE', Unicode),
+                    Column('JOURNAL_NAME', Unicode),
+                    Column('JOURNAL_VOLUME', Unicode),
                     Column('MIT_ID', String),
-                    Column('PUBLISHER', String),
+                    Column('PUBLISHER', Unicode),
                     )
 
 
