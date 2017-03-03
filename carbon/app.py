@@ -51,7 +51,9 @@ def people():
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
                   persons.c.ORIGINAL_HIRE_DATE, dlcs.c.DLC_NAME,
-                  persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID]) \
+                  persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID,
+                  dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
+                  dlcs.c.HR_ORG_LEVEL5_NAME,]) \
         .select_from(persons.outerjoin(orcids).join(dlcs)) \
         .where(persons.c.EMAIL_ADDRESS != None) \
         .where(persons.c.LAST_NAME != None) \
@@ -113,6 +115,10 @@ def initialize_part(name):
     return ''.join([x[:1] for x in re.split('(\W+)', name, flags=re.UNICODE)])\
         .upper()
 
+
+def group_name(dlc, sub_area):
+    qualifier = 'Faculty' if sub_area in ('CFAT', 'CFAN') else 'Non-faculty'
+    return "{} {}".format(dlc, qualifier)
 
 def _ns(namespace, element):
     return ET.QName(namespace, element)
@@ -195,12 +201,18 @@ def _add_person(xf, person):
     add_child(record, 'field', '1', name='[IsAcademic]')
     add_child(record, 'field', '1', name='[IsCurrent]')
     add_child(record, 'field', '1', name='[LoginAllowed]')
-    add_child(record, 'field', person['DLC_NAME'],
+    add_child(record, 'field',
+              group_name(person['DLC_NAME'], person['PERSONNEL_SUBAREA_CODE']),
               name='[PrimaryGroupDescriptor]')
-    add_child(record, 'field', person['ORCID'], name='[Generic01]')
-    add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],
-              name='[Generic02]')
     add_child(record, 'field',
               person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
               name='[ArriveDate]')
+    add_child(record, 'field', person['ORCID'], name='[Generic01]')
+    add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],
+              name='[Generic02]')
+    add_child(record, 'field', person['ORG_HIER_SCHOOL_AREA_NAME'],
+              name='[Generic03]')
+    add_child(record, 'field', person['DLC_NAME'], name='[Generic04]')
+    add_child(record, 'field', person.get('HR_ORG_LEVEL5_NAME'),
+              name='[Generic05]')
     xf.write(record)

@@ -38,6 +38,7 @@ dlc:
     HR_ORG_UNIT_ID: "01239"
     DLC_NAME: Nuclear Science
     ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+    HR_ORG_LEVEL5_NAME: Nuclear Science and Engineering
 ---
 person:
     MIT_ID: "987654"

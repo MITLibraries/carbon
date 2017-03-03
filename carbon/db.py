@@ -30,6 +30,7 @@ dlcs = Table('HR_ORG_UNIT', metadata,
                     ForeignKey('HR_PERSON_EMPLOYEE_LIMITED.HR_ORG_UNIT_ID')),
              Column('ORG_HIER_SCHOOL_AREA_NAME', String),
              Column('DLC_NAME', String),
+             Column('HR_ORG_LEVEL5_NAME', String),
              )
 
 

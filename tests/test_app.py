@@ -7,7 +7,7 @@ import pytest
 
 from carbon import people, articles
 from carbon.app import (person_feed, ns, NSMAP, add_child, initials,
-                        article_feed,)
+                        article_feed, group_name)
 
 
 pytestmark = pytest.mark.usefixtures('load_data')
@@ -102,6 +102,15 @@ def test_person_feed_uses_utf8_encoding(records, xml_records, E):
         f(r)
     assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
                                        xml_declaration=True)
+
+
+def test_group_name_adds_faculty():
+    assert group_name('FOOBAR', 'CFAT') == 'FOOBAR Faculty'
+    assert group_name('FOOBAR', 'CFAN') == 'FOOBAR Faculty'
+
+
+def test_group_name_adds_non_faculty():
+    assert group_name('FOOBAR', 'COAC') == 'FOOBAR Non-faculty'
 
 
 def test_articles_generates_articles():
