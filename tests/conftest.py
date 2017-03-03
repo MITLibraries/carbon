@@ -69,10 +69,13 @@ def xml_records(E):
             E.field('1', {'name': '[IsAcademic]'}),
             E.field('1', {'name': '[IsCurrent]'}),
             E.field('1', {'name': '[LoginAllowed]'}),
-            E.field('Chemistry', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('Chemistry Faculty', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('2001-01-01', {'name': '[ArriveDate]'}),
             E.field('http://example.com/1', {'name': '[Generic01]'}),
             E.field('CFAT', {'name': '[Generic02]'}),
-            E.field('2001-01-01', {'name': '[ArriveDate]'})
+            E.field('SCIENCE AREA', {'name': '[Generic03]'}),
+            E.field('Chemistry', {'name': '[Generic04]'}),
+            E.field(name='[Generic05]')
         ),
         E.record(
             E.field('098754', name='[Proprietary_ID]'),
@@ -85,10 +88,14 @@ def xml_records(E):
             E.field('1', {'name': '[IsAcademic]'}),
             E.field('1', {'name': '[IsCurrent]'}),
             E.field('1', {'name': '[LoginAllowed]'}),
-            E.field('Nuclear Science', {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('Nuclear Science Non-faculty',
+                    {'name': '[PrimaryGroupDescriptor]'}),
+            E.field('2015-01-01', {'name': '[ArriveDate]'}),
             E.field('http://example.com/2', {'name': '[Generic01]'}),
             E.field('COAC', {'name': '[Generic02]'}),
-            E.field('2015-01-01', {'name': '[ArriveDate]'})
+            E.field('ENGINEERING AREA', {'name': '[Generic03]'}),
+            E.field('Nuclear Science', {'name': '[Generic04]'}),
+            E.field('Nuclear Science and Engineering', {'name': '[Generic05]'})
         )
     ]
 
