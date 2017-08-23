@@ -1,0 +1,15 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+
+[dev-packages]
+bumpversion = "*"
+coveralls = "*"
+pytest = "*"
+pytest-cov = "*"
+PyYAML = "*"
+
+[packages]
+click = "*"
+lxml = "*"
+SQLAlchemy = "*"

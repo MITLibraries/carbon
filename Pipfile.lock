@@ -1,0 +1,69 @@
+{
+    "_meta": {
+        "hash": {
+            "sha256": "ff3c60a5afa1726e6b485b3d5830beda52c4c144c3aa238953ead43993c90c3d"
+        },
+        "requires": {},
+        "sources": [
+            {
+                "url": "https://pypi.python.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "click": {
+            "version": "==6.7"
+        },
+        "lxml": {
+            "version": "==3.8.0"
+        },
+        "sqlalchemy": {
+            "version": "==1.1.13"
+        }
+    },
+    "develop": {
+        "bumpversion": {
+            "version": "==0.5.3"
+        },
+        "certifi": {
+            "version": "==2017.7.27.1"
+        },
+        "chardet": {
+            "version": "==3.0.4"
+        },
+        "coverage": {
+            "version": "==4.4.1"
+        },
+        "coveralls": {
+            "version": "==1.2.0"
+        },
+        "docopt": {
+            "version": "==0.6.2"
+        },
+        "idna": {
+            "version": "==2.6"
+        },
+        "py": {
+            "version": "==1.4.34"
+        },
+        "pytest": {
+            "version": "==3.2.1"
+        },
+        "pytest-cov": {
+            "version": "==2.5.1"
+        },
+        "pyyaml": {
+            "version": "==3.12"
+        },
+        "requests": {
+            "version": "==2.18.4"
+        },
+        "setuptools": {
+            "version": "==36.2.7"
+        },
+        "urllib3": {
+            "version": "==1.22"
+        }
+    }
+}
