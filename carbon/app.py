@@ -51,7 +51,8 @@ def people():
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
                   persons.c.ORIGINAL_HIRE_DATE, dlcs.c.DLC_NAME,
-                  persons.c.PERSONNEL_SUBAREA_CODE, orcids.c.ORCID,
+                  persons.c.PERSONNEL_SUBAREA_CODE,
+                  persons.c.APPOINTMENT_END_DATE, orcids.c.ORCID,
                   dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
                   dlcs.c.HR_ORG_LEVEL5_NAME,]) \
         .select_from(persons.outerjoin(orcids).join(dlcs)) \
@@ -207,6 +208,9 @@ def _add_person(xf, person):
     add_child(record, 'field',
               person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
               name='[ArriveDate]')
+    add_child(record, 'field',
+              person['APPOINTMENT_END_DATE'].strftime("%Y-%m-%d"),
+              name='[LeaveDate]')
     add_child(record, 'field', person['ORCID'], name='[Generic01]')
     add_child(record, 'field', person['PERSONNEL_SUBAREA_CODE'],
               name='[Generic02]')
