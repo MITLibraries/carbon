@@ -18,7 +18,7 @@ test:
 tests: test
 
 release:
-	bumpversion $(RELEASE_TYPE)
+	pipenv run bumpversion $(RELEASE_TYPE)
 	@tput setaf 2
 	@echo Built release for `git describe --tag`. Make sure to run:
 	@echo "  $$ git push origin `git rev-parse --abbrev-ref HEAD` tag `git describe --tag`"
