@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from io import BytesIO
+import os
 
 from lxml import etree as ET
 import pytest
 
 from carbon import people, articles
 from carbon.app import (person_feed, ns, NSMAP, add_child, initials,
-                        article_feed, group_name)
+                        article_feed, group_name, Writer, PipeWriter,
+                        FTPReader)
 
 
 pytestmark = pytest.mark.usefixtures('load_data')
@@ -72,11 +74,42 @@ def test_add_child_adds_child_element(E):
     assert ET.tostring(e) == ET.tostring(xml)
 
 
+def test_writer_writes_person_feed(E):
+    b = BytesIO()
+    w = Writer(b)
+    w.write('people')
+    xml = ET.XML(b.getvalue())
+    xp = xml.xpath("/s:records/s:record/s:field[@name='[FirstName]']",
+                   namespaces={'s': 'http://www.symplectic.co.uk/hrimporter'})
+    assert xp[1].text == 'Þorgerðr'
+
+
+def test_pipewriter_writes_person_feed(E, reader):
+    r, w = os.pipe()
+    with open(r, 'rb') as fr, open(w, 'wb') as fw:
+        wtr = PipeWriter(fw)
+        rdr = reader(fr)
+        wtr.pipe(rdr).write('people')
+    xml = ET.XML(rdr.data)
+    xp = xml.xpath("/s:records/s:record/s:field[@name='[FirstName]']",
+                   namespaces={'s': 'http://www.symplectic.co.uk/hrimporter'})
+    assert xp[1].text == 'Þorgerðr'
+
+
+def test_ftpreader_sends_file(ftp_server):
+    s, d = ftp_server
+    b = BytesIO(b"Storin' some bits in the FTPz")
+    ftp = FTPReader(b, 'user', 'pass', '/warez', port=s[1])
+    ftp()
+    with open(os.path.join(d, 'warez')) as fp:
+        assert fp.read() == "Storin' some bits in the FTPz"
+
+
 def test_person_feed_uses_namespace():
     b = BytesIO()
     with person_feed(b):
         pass
-    root = ET.fromstring(b.getvalue())
+    root = ET.XML(b.getvalue())
     assert root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
 
 
@@ -88,8 +121,10 @@ def test_person_feed_adds_person(records, xml_records, E):
     r.update(records[0]['dlc'])
     with person_feed(b) as f:
         f(r)
-    assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
-                                       xml_declaration=True)
+    xml = ET.XML(b.getvalue())
+    xp = xml.xpath("/s:records/s:record/s:field[@name='[FirstName]']",
+                   namespaces={'s': 'http://www.symplectic.co.uk/hrimporter'})
+    assert xp[0].text == 'Foobar'
 
 
 def test_person_feed_uses_utf8_encoding(records, xml_records, E):
@@ -100,8 +135,10 @@ def test_person_feed_uses_utf8_encoding(records, xml_records, E):
     r.update(records[1]['dlc'])
     with person_feed(b) as f:
         f(r)
-    assert b.getvalue() == ET.tostring(xml, encoding="UTF-8",
-                                       xml_declaration=True)
+    xml = ET.XML(b.getvalue())
+    xp = xml.xpath("/s:records/s:record/s:field[@name='[FirstName]']",
+                   namespaces={'s': 'http://www.symplectic.co.uk/hrimporter'})
+    assert xp[0].text == 'Þorgerðr'
 
 
 def test_group_name_adds_faculty():

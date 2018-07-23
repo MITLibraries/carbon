@@ -2,8 +2,14 @@
 from __future__ import absolute_import
 from contextlib import closing
 import os
+import socket
+import tempfile
+import threading
 
 from lxml.builder import ElementMaker, E as B
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.servers import FTPServer
+from pyftpdlib.handlers import TLS_FTPHandler
 import pytest
 import yaml
 
@@ -33,6 +39,44 @@ def aa_data():
     with open(data) as fp:
         r = list(yaml.load_all(fp))
     return r
+
+
+@pytest.yield_fixture(scope="session")
+def _ftp_server():
+    """Starts an FTPS server with an empty temp dir.
+
+    This fixture returns a tuple with the socketname and the path to the
+    serving directory. The socketname is a tuple with host and port.
+
+    Use the ``ftp_server`` wrapper fixture instead as it will clean the
+    directory before each test.
+    """
+    s = socket.socket()
+    s.bind(('', 0))
+    fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                            'fixtures')
+    with tempfile.TemporaryDirectory() as d:
+        auth = DummyAuthorizer()
+        auth.add_user('user', 'pass', d, perm='elradfmwMT')
+        handler = TLS_FTPHandler
+        handler.certfile = os.path.join(fixtures, 'server.crt')
+        handler.keyfile = os.path.join(fixtures, 'server.key')
+        handler.authorizer = auth
+        server = FTPServer(s, handler)
+        t = threading.Thread(target=server.serve_forever, daemon=1)
+        t.start()
+        yield s.getsockname(), d
+
+
+@pytest.fixture
+def ftp_server(_ftp_server):
+    """Wrapper around ``_ftp_server`` to clean directory before each test."""
+    d = _ftp_server[1]
+    for f in os.listdir(d):
+        fpath = os.path.join(d, f)
+        if os.path.isfile(fpath):
+            os.unlink(fpath)
+    return _ftp_server
 
 
 @pytest.yield_fixture
@@ -135,3 +179,19 @@ def articles_data(aa_data):
             B.PUBLISHER('MIT Press')
             )
         )
+
+
+@pytest.fixture
+def reader():
+    class Reader:
+        def __init__(self, fp):
+            self.fp = fp
+            self.data = b''
+
+        def __call__(self):
+            while 1:
+                data = self.fp.read(1024)
+                if not data:
+                    break
+                self.data += data
+    return Reader
