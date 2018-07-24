@@ -3,7 +3,9 @@ from __future__ import absolute_import
 from contextlib import contextmanager, closing
 from datetime import datetime
 from functools import partial
+import ftplib
 import re
+import threading
 
 from lxml import etree as ET
 from sqlalchemy import func, select
@@ -135,6 +137,77 @@ def add_child(parent, element, text, **kwargs):
     child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text
     return child
+
+
+class Writer:
+    """A Symplectic Elements feed writer.
+
+    Use this class to generate and output an HR or AA feed for Symplectic
+    Elements.
+    """
+    def __init__(self, out):
+        self.out = out
+
+    def write(self, feed_type):
+        """Write the specified feed type to the configured output."""
+        if feed_type == 'people':
+            with person_feed(self.out) as f:
+                for person in people():
+                    f(person)
+        elif feed_type == 'articles':
+            with article_feed(self.out) as f:
+                for article in articles():
+                    f(article)
+
+
+class PipeWriter(Writer):
+    """A read/write :class:`carbon.app.Writer`.
+
+    This class is intended to provide a buffered read/write connecter. The
+    :meth:`~carbon.app.PipeWriter.pipe` method should be called before
+    writing to configure the reader end. For example::
+
+        PipeWriter(fp_out).pipe(reader).write('people')
+
+    See :class:`carbon.app.FTPReader` for an example reader.
+    """
+    def write(self, feed_type):
+        """Concurrently read/write from the configured inputs and outputs.
+
+        This method will block until both the reader and writer are finished.
+        """
+        pipe = threading.Thread(target=self._reader)
+        pipe.start()
+        super().write(feed_type)
+        self.out.close()
+        pipe.join()
+
+    def pipe(self, reader):
+        """Connect the read end of the pipe.
+
+        This should be called before :meth:`~carbon.app.PipeWriter.write`.
+        """
+        self._reader = reader
+        return self
+
+
+class FTPReader:
+    def __init__(self, fp, user, passwd, path, host='localhost', port=21):
+        self.fp = fp
+        self.user = user
+        self.passwd = passwd
+        self.path = path
+        self.host = host
+        self.port = port
+
+    def __call__(self):
+        """Transfer a file using FTP over TLS."""
+        ftps = ftplib.FTP_TLS()
+        ftps.connect(self.host, self.port)
+        ftps.login(self.user, self.passwd)
+        ftps.prot_p()
+        ftps.storbinary("STOR " + self.path, self.fp)
+        ftps.quit()
 
 
 @contextmanager

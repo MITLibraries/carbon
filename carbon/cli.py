@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import os
+
 import click
 
-from carbon import people, person_feed, articles, article_feed
+from carbon.app import FTPReader, PipeWriter, Writer
 from carbon.db import engine
 
 
@@ -13,8 +15,22 @@ from carbon.db import engine
 @click.option('--db', envvar='CARBON_DB', help='Database connection string')
 @click.option('-o', '--out', help='Output file', type=click.File('wb'),
               default='-')
-def main(feed_type, db, out):
+@click.option('--ftp', is_flag=True, help='Send output to FTP server; do not '
+                                          'use this with the -o/--out option')
+@click.option('--ftp-host', envvar='FTP_HOST', help='Hostname of FTP server',
+              default='localhost', show_default=True)
+@click.option('--ftp-port', envvar='FTP_PORT', help='FTP server port',
+              default=21, show_default=True)
+@click.option('--ftp-user', envvar='FTP_USER', help='FTP username')
+@click.option('--ftp-pass', envvar='FTP_PASS', help='FTP password')
+@click.option('--ftp-path', envvar='FTP_PATH',
+              help='Full path to file on FTP server')
+def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
+         ftp_path):
     """Generate feeds for Symplectic Elements.
+
+    Specify which FEED_TYPE should be generated. This should be either
+    'people' or 'articles'.
 
     The data is pulled from a database identified by --db, which should
     be a valid SQLAlchemy database connection string. This can also be
@@ -23,16 +39,19 @@ def main(feed_type, db, out):
 
     oracle://<username>:<password>@<server>:1521/<sid>
 
-    The feed will be printed to stdout if -o/--out is not specified.
+    By default, the feed will be printed to stdout. If -o/--out is used the
+    output will be written to the specified file instead.
 
-    FEED_TYPE should be 'people' or 'articles'.
+    Alternatively, the --ftp switch can be used to send the output to an FTP
+    server. The server should support FTP over TLS. Only one of -o/--out or
+    --ftp should be used.
     """
     engine.configure(db)
-    if feed_type == 'people':
-        with person_feed(out) as f:
-            for person in people():
-                f(person)
-    elif feed_type == 'articles':
-        with article_feed(out) as f:
-            for article in articles():
-                f(article)
+    if ftp:
+        r, w = os.pipe()
+        with open(r, 'rb') as fp_r, open(w, 'wb') as fp_w:
+            ftp_rdr = FTPReader(fp_r, ftp_user, ftp_pass, ftp_path, ftp_host,
+                                ftp_port)
+            PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
+    else:
+        Writer(out=out).write(feed_type)

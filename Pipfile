@@ -8,6 +8,8 @@ coveralls = "*"
 pytest = "*"
 pytest-cov = "*"
 PyYAML = "*"
+pyftpdlib = "*"
+pyopenssl = "*"
 
 [packages]
 click = "*"
