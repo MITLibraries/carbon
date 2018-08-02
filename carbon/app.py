@@ -4,6 +4,7 @@ from contextlib import contextmanager, closing
 from datetime import datetime
 from functools import partial
 import ftplib
+import os
 import re
 import threading
 
@@ -293,3 +294,32 @@ def _add_person(xf, person):
     add_child(record, 'field', person.get('HR_ORG_LEVEL5_NAME'),
               name='[Generic05]')
     xf.write(record)
+
+
+class Config(dict):
+    @classmethod
+    def from_env(cls):
+        cfg = cls()
+        for var in ['FTP_USER', 'FTP_PASS', 'FTP_PATH', 'FTP_HOST',
+                    'CARBON_DB',]:
+            cfg[var] = os.environ.get(var)
+        return cfg
+
+
+class Lambda:
+    def __init__(self, event, context, config):
+        self.event = event
+        self.context = context
+        self.config = config
+
+    def run(self):
+        r, w = os.pipe()
+        feed_type = self.event['feed_type']
+        with open(r, 'rb') as fp_r, open(w, 'wb') as fp_w:
+            ftp_rdr = FTPReader(fp_r,
+                                self.config['FTP_USER'],
+                                self.config['FTP_PASS'],
+                                self.config['FTP_PATH'],
+                                self.config['FTP_HOST'],
+                                self.config['FTP_PORT'])
+            PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
