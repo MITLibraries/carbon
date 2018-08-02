@@ -3,7 +3,7 @@ import os
 
 import boto3
 
-from carbon.app import Config, Lambda
+from carbon.app import Config, FTPFeeder
 from carbon.db import engine
 
 
@@ -13,4 +13,4 @@ def handler(event, context):
     cfg = Config.from_env()
     cfg.update(json.loads(secret_env))
     engine.configure(cfg['CARBON_DB'])
-    Lambda(event, context, cfg).run()
+    FTPFeeder(event, context, cfg).run()

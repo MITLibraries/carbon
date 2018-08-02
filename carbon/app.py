@@ -306,7 +306,7 @@ class Config(dict):
         return cfg
 
 
-class Lambda:
+class FTPFeeder:
     def __init__(self, event, context, config):
         self.event = event
         self.context = context

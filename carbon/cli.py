@@ -3,7 +3,7 @@ from __future__ import absolute_import
 
 import click
 
-from carbon.app import Config, Lambda, Writer
+from carbon.app import Config, FTPFeeder, Writer
 from carbon.db import engine
 
 
@@ -48,6 +48,6 @@ def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
     if ftp:
         cfg = Config(FTP_USER=ftp_user, FTP_PASS=ftp_pass, FTP_PATH=ftp_path,
                      FTP_HOST=ftp_host, FTP_PORT=ftp_port)
-        Lambda({'feed_type': feed_type}, None, cfg).run()
+        FTPFeeder({'feed_type': feed_type}, None, cfg).run()
     else:
         Writer(out=out).write(feed_type)
