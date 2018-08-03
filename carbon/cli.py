@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-import os
-
 import click
 
-from carbon.app import FTPReader, PipeWriter, Writer
+from carbon.app import Config, FTPFeeder, Writer
 from carbon.db import engine
 
 
@@ -48,10 +46,8 @@ def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
     """
     engine.configure(db)
     if ftp:
-        r, w = os.pipe()
-        with open(r, 'rb') as fp_r, open(w, 'wb') as fp_w:
-            ftp_rdr = FTPReader(fp_r, ftp_user, ftp_pass, ftp_path, ftp_host,
-                                ftp_port)
-            PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
+        cfg = Config(FTP_USER=ftp_user, FTP_PASS=ftp_pass, FTP_PATH=ftp_path,
+                     FTP_HOST=ftp_host, FTP_PORT=ftp_port)
+        FTPFeeder({'feed_type': feed_type}, None, cfg).run()
     else:
         Writer(out=out).write(feed_type)
