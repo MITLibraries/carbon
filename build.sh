@@ -6,6 +6,7 @@ DIST_DIR=dist-aws
 S3_BUCKET=carbon-deploy
 LIBAIO_SO=libaio.so.1.0.1
 ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
+PACKAGE=carbon-`git rev-parse --short HEAD`.zip
 
 mkdir -p $BUILD_DIR/lib
 mkdir -p $DIST_DIR
@@ -20,4 +21,4 @@ cp -r carbon $BUILD_DIR
 cp lambda.py $BUILD_DIR
 pipenv lock -r > $BUILD_DIR/requirements.txt
 pipenv run pip install -r $BUILD_DIR/requirements.txt -t $BUILD_DIR
-cd $BUILD_DIR && zip --symlinks -r ../$DIST_DIR/carbon.zip *
+cd $BUILD_DIR && zip --symlinks -r ../$DIST_DIR/$PACKAGE *
