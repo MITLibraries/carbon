@@ -6,10 +6,9 @@ import os
 from lxml import etree as ET
 import pytest
 
-from carbon import people, articles
 from carbon.app import (person_feed, ns, NSMAP, add_child, initials,
                         article_feed, group_name, Writer, PipeWriter,
-                        FTPReader)
+                        FTPReader, people, articles)
 
 
 pytestmark = pytest.mark.usefixtures('load_data')

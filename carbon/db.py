@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import os
 
 from sqlalchemy import (create_engine, Table, Column, String, Date, MetaData,
-                        ForeignKey, Numeric, Text, Unicode, UnicodeText)
+                        ForeignKey, Numeric, Unicode, UnicodeText)
 
 
 os.environ['NLS_LANG'] = 'AMERICAN_AMERICA.UTF8'
