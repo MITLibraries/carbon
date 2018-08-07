@@ -4,6 +4,8 @@
 *.egg-info
 .cache
 build/
+build-aws/
 dist/
+dist-aws/
 tests/db/
 .pytest_cache

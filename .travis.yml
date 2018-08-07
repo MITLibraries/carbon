@@ -2,13 +2,27 @@ sudo: false
 notifications:
   email: false
 language: python
-matrix:
-  include:
-    - python: 3.6
-      env: TOX_ENV=py36
-    - python: 3.6
-      env: TOX_ENV=coveralls
+python:
+  - "3.6"
+env:
+  - TOX_ENV=py36
+  - TOX_ENV=coveralls
 install:
   - pip install tox
 script:
   - tox -e $TOX_ENV
+jobs:
+  include:
+    - stage: s3 deploy
+      install:
+        - pip install pipenv awscli
+      script: skip
+      before_deploy: bash build.sh
+      deploy:
+        skip_cleanup: true
+        provider: s3
+        access_key_id: $AWS_ACCESS_KEY_ID
+        secret_access_key: $AWS_SECRET_ACCESS_KEY
+        bucket: "carbon-deploy"
+        local_dir: "dist-aws"
+      after_deploy: bash publish.sh
