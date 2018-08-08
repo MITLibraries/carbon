@@ -47,6 +47,46 @@ If you need to deploy a new package outside of Travis then do the following, *no
     $ ./build.sh
     $ ./publish.sh
 
+Configuration
+^^^^^^^^^^^^^
+
+In order for the Lambda to run, carbon needs a few environment variables set.
+
++-----------+-------------------------------------------------------------+
+| Variable  | Description                                                 |
++===========+=============================================================+
+| FTP_USER  | FTP user to log in as                                       |
++-----------+-------------------------------------------------------------+
+| FTP_PASS  | Password for FTP user (see SECRET_ID)                       |
++-----------+-------------------------------------------------------------+
+| FTP_PATH  | Name of remote file (with path) on FTP server               |
++-----------+-------------------------------------------------------------+
+| FTP_HOST  | FTP server hostname                                         |
++-----------+-------------------------------------------------------------+
+| FTP_PORT  | FTP server port                                             |
++-----------+-------------------------------------------------------------+
+| CARBON_DB | SQLAlchemy database connection string of the form:          |
+|           | ``oracle://<username>:<password>@<server>:1521/<sid>``      |
+|           | (see SECRET_ID)                                             |
++-----------+-------------------------------------------------------------+
+| SECRET_ID | The ID for an AWS Secrets secret. Use either the Amazon     |
+|           | Resource Name or the friendly name of the secret. See below |
+|           | for a description of this value.                            |
++-----------+-------------------------------------------------------------+
+
+The ``FTP_PASS`` and ``CARBON_DB`` env vars should not be set as env vars in the Lambda function. Instead, create an AWS Secrets JSON object with these and set the ID of the secret as the ``SECRET_ID`` env var on the Lambda function. The JSON object should look like::
+
+    {
+      "FTP_PASS": <password>,
+      "CARBON_DB": <connection_string>
+    }
+
+The same Lambda function is used to generate both the HR and the AA feeds. Passing the feed type to the Lambda at runtime determines which feed gets generated. This should be handled by the CloudWatch event that triggers the Lambda execution. The event can be configured to pass a custom JSON object to the Lambda. Use the following JSON, selecting either ``people`` or ``articles`` for the feed you want to generate::
+
+    {
+      "feed_type": <people|articles>
+    }
+
 Usage
 -----
 
