@@ -57,7 +57,7 @@ def people():
                   persons.c.PERSONNEL_SUBAREA_CODE,
                   persons.c.APPOINTMENT_END_DATE, orcids.c.ORCID,
                   dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
-                  dlcs.c.HR_ORG_LEVEL5_NAME,]) \
+                  dlcs.c.HR_ORG_LEVEL5_NAME, ]) \
         .select_from(persons.outerjoin(orcids).join(dlcs)) \
         .where(persons.c.EMAIL_ADDRESS != None) \
         .where(persons.c.LAST_NAME != None) \
@@ -67,7 +67,7 @@ def people():
         .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1)) \
         .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS)) \
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES)) \
-        .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
+        .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))  # noqa: E711
     with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
@@ -82,7 +82,7 @@ def articles():
         .where(aa_articles.c.ARTICLE_ID != None) \
         .where(aa_articles.c.ARTICLE_TITLE != None) \
         .where(aa_articles.c.DOI != None) \
-        .where(aa_articles.c.MIT_ID != None)
+        .where(aa_articles.c.MIT_ID != None)  # noqa: E711
     with closing(engine().connect()) as conn:
         for row in conn.execute(sql):
             yield dict(zip(row.keys(), row))
@@ -123,6 +123,7 @@ def initialize_part(name):
 def group_name(dlc, sub_area):
     qualifier = 'Faculty' if sub_area in ('CFAT', 'CFAN') else 'Non-faculty'
     return "{} {}".format(dlc, qualifier)
+
 
 def _ns(namespace, element):
     return ET.QName(namespace, element)
@@ -301,7 +302,7 @@ class Config(dict):
     def from_env(cls):
         cfg = cls()
         for var in ['FTP_USER', 'FTP_PASS', 'FTP_PATH', 'FTP_HOST',
-                    'CARBON_DB',]:
+                    'CARBON_DB', ]:
             cfg[var] = os.environ.get(var)
         return cfg
 
