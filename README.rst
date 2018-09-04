@@ -50,7 +50,7 @@ If you need to deploy a new package outside of Travis then do the following, *no
 Configuration
 ^^^^^^^^^^^^^
 
-In order for the Lambda to run, carbon needs a few environment variables set.
+In order for the Lambda to run, carbon needs a few environment variables set. These can either be set in the environment or passed to the Lambda function through the event JSON object. Variables set using the event object will overwrite those set in the environment.
 
 +-----------+-------------------------------------------------------------+
 | Variable  | Description                                                 |

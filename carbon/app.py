@@ -44,6 +44,9 @@ TITLES = (
     'VISITING SENIOR LECTURER', 'PART-TIME FLEXIBLE/LL',
 )
 
+ENV_VARS = ('FTP_USER', 'FTP_PASS', 'FTP_PATH', 'FTP_HOST', 'FTP_PORT',
+            'CARBON_DB')
+
 
 def people():
     """A person generator.
@@ -301,8 +304,7 @@ class Config(dict):
     @classmethod
     def from_env(cls):
         cfg = cls()
-        for var in ['FTP_USER', 'FTP_PASS', 'FTP_PATH', 'FTP_HOST',
-                    'CARBON_DB', ]:
+        for var in ENV_VARS:
             cfg[var] = os.environ.get(var)
         return cfg
 

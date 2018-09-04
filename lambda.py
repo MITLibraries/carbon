@@ -3,7 +3,7 @@ import os
 
 import boto3
 
-from carbon.app import Config, FTPFeeder
+from carbon.app import Config, ENV_VARS, FTPFeeder
 from carbon.db import engine
 
 
@@ -12,6 +12,7 @@ def handler(event, context):
     secret = client.get_secret_value(SecretId=os.environ['SECRET_ID'])
     secret_env = json.loads(secret['SecretString'])
     cfg = Config.from_env()
+    cfg.update({k: event[k] for k in ENV_VARS if k in event})
     cfg.update(secret_env)
     engine.configure(cfg['CARBON_DB'])
     FTPFeeder(event, context, cfg).run()
