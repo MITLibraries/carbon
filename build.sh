@@ -6,7 +6,7 @@ DIST_DIR=dist-aws
 S3_BUCKET=carbon-deploy
 LIBAIO_SO=libaio.so.1.0.1
 ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
-PACKAGE=carbon-`git rev-parse --short HEAD`.zip
+PACKAGE=carbon.zip
 
 mkdir -p $BUILD_DIR/lib
 mkdir -p $DIST_DIR

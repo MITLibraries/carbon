@@ -45,7 +45,7 @@ If you need to deploy a new package outside of Travis then do the following, *no
 
     $ cd carbon
     $ ./build.sh
-    $ ./publish.sh
+    $ ./publish.sh --upload
 
 Configuration
 ^^^^^^^^^^^^^
