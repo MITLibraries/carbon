@@ -19,6 +19,7 @@ aws s3 cp s3://$S3_BUCKET/$LIBAIO_SO $BUILD_DIR/lib/$LIBAIO_SO && \
   ln -rs $BUILD_DIR/lib/libaio.so.1 $BUILD_DIR/lib/libaio.so
 cp -r carbon $BUILD_DIR
 cp lambda.py $BUILD_DIR
+cp comodo.pem $BUILD_DIR
 pipenv lock -r > $BUILD_DIR/requirements.txt
 pipenv run pip install -r $BUILD_DIR/requirements.txt -t $BUILD_DIR
 cd $BUILD_DIR && zip --symlinks -r ../$DIST_DIR/$PACKAGE *

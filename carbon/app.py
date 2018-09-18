@@ -197,17 +197,19 @@ class PipeWriter(Writer):
 
 
 class FTPReader:
-    def __init__(self, fp, user, passwd, path, host='localhost', port=21):
+    def __init__(self, fp, user, passwd, path, host='localhost', port=21,
+                 ctx=None):
         self.fp = fp
         self.user = user
         self.passwd = passwd
         self.path = path
         self.host = host
         self.port = port
+        self.ctx = ctx
 
     def __call__(self):
         """Transfer a file using FTP over TLS."""
-        ftps = ftplib.FTP_TLS()
+        ftps = ftplib.FTP_TLS(context=self.ctx)
         ftps.connect(self.host, self.port)
         ftps.login(self.user, self.passwd)
         ftps.prot_p()
@@ -310,10 +312,11 @@ class Config(dict):
 
 
 class FTPFeeder:
-    def __init__(self, event, context, config):
+    def __init__(self, event, context, config, ssl_ctx=None):
         self.event = event
         self.context = context
         self.config = config
+        self.ssl_ctx = ssl_ctx
 
     def run(self):
         r, w = os.pipe()
@@ -324,5 +327,6 @@ class FTPFeeder:
                                 self.config['FTP_PASS'],
                                 self.config['FTP_PATH'],
                                 self.config['FTP_HOST'],
-                                self.config['FTP_PORT'])
+                                int(self.config['FTP_PORT']),
+                                self.ssl_ctx)
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)

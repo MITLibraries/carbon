@@ -1,5 +1,6 @@
 import json
 import os
+import ssl
 
 import boto3
 
@@ -15,4 +16,9 @@ def handler(event, context):
     cfg.update({k: event[k] for k in ENV_VARS if k in event})
     cfg.update(secret_env)
     engine.configure(cfg['CARBON_DB'])
-    FTPFeeder(event, context, cfg).run()
+    c_dir = os.path.dirname(os.path.realpath(__file__))
+    cert = os.path.join(c_dir, 'comodo.pem')
+    ctx = ssl.create_default_context()
+    # Load the missing cert from Symplectic's cert chain
+    ctx.load_verify_locations(cafile=cert)
+    FTPFeeder(event, context, cfg, ctx).run()
