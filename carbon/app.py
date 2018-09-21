@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from contextlib import contextmanager, closing
 from datetime import datetime
 from functools import partial
-import ftplib
+from ftplib import FTP, FTP_TLS
 import os
 import re
 import threading
@@ -196,6 +196,43 @@ class PipeWriter(Writer):
         return self
 
 
+class CarbonCopyFTPS(FTP_TLS):
+    """FTP_TLS subclass with support for SSL session reuse.
+
+    The stdlib version of FTP_TLS creates a new SSL session for data
+    transfer commands. This results in a cryptic OpenSSL error message
+    when a server requires SSL session reuse. The ntransfercmd here takes
+    advantage of the new session parameter to wrap_socket that was added
+    in 3.6.
+
+    Additionally, in the stdlib, storbinary destroys the SSL session after
+    transfering the file. Since the session has been shared with the
+    command connection, OpenSSL will once again generate a cryptic error
+    message for subsequent commands. The modified storbinary method here
+    removes the unwrap call. Calling quit on the ftp connection should
+    still cleanly shutdown the connection.
+    """
+    def ntransfercmd(self, cmd, rest=None):
+        conn, size = FTP.ntransfercmd(self, cmd, rest)
+        if self._prot_p:
+            conn = self.context.wrap_socket(conn,
+                                            server_hostname=self.host,
+                                            session=self.sock.session)
+        return conn, size
+
+    def storbinary(self, cmd, fp, blocksize=8192, callback=None, rest=None):
+        self.voidcmd('TYPE I')
+        with self.transfercmd(cmd, rest) as conn:
+            while 1:
+                buf = fp.read(blocksize)
+                if not buf:
+                    break
+                conn.sendall(buf)
+                if callback:
+                    callback(buf)
+        return self.voidresp()
+
+
 class FTPReader:
     def __init__(self, fp, user, passwd, path, host='localhost', port=21,
                  ctx=None):
@@ -209,7 +246,7 @@ class FTPReader:
 
     def __call__(self):
         """Transfer a file using FTP over TLS."""
-        ftps = ftplib.FTP_TLS(context=self.ctx)
+        ftps = CarbonCopyFTPS(context=self.ctx)
         ftps.connect(self.host, self.port)
         ftps.login(self.user, self.passwd)
         ftps.prot_p()
