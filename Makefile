@@ -7,13 +7,13 @@ ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
 install:
 	pipenv install
 
-dist/$(LIBAIO_SO):
-	aws s3 cp s3://$(S3_BUCKET)/$(LIBAIO_SO) dist/$(LIBAIO_SO)
+vendor/$(LIBAIO_SO):
+	aws s3 cp s3://$(S3_BUCKET)/$(LIBAIO_SO) vendor/$(LIBAIO_SO)
 
-dist/$(ORACLE_ZIP):
-	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) dist/$(ORACLE_ZIP)
+vendor/$(ORACLE_ZIP):
+	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
-deps: dist/$(LIBAIO_SO) dist/$(ORACLE_ZIP)
+deps: vendor/$(LIBAIO_SO) vendor/$(ORACLE_ZIP)
 
 wheel:
 	pipenv run python setup.py bdist_wheel
@@ -32,6 +32,9 @@ clean:
 	find . -name "*.pyc" -print0 | xargs -0 rm -f
 	find . -name '__pycache__' -print0 | xargs -0 rm -rf
 	rm -rf .coverage .tox *.egg-info .eggs build/ dist/
+
+distclean: clean
+	rm -rf vendor/
 
 test:
 	tox

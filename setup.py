@@ -6,7 +6,6 @@ Carbon, a people loader.
 from setuptools import find_packages, setup
 import subprocess
 
-
 with open('LICENSE') as f:
     license = f.read()
 
@@ -19,7 +18,7 @@ except subprocess.CalledProcessError as e:
 
 setup(
     name='carbon',
-    version=version,
+    version="1.0.0-" + version,
     description='Load people into Elements',
     long_description=__doc__,
     url='https://github.com/MITLibraries/carbon',
