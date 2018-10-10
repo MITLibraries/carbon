@@ -1,29 +1,43 @@
-.PHONY: all clean install release test tests update
+.PHONY: install deps wheel container dist clean test tests update
 SHELL=/bin/bash
-RELEASE_TYPE=patch
+S3_BUCKET=carbon-deploy
+LIBAIO_SO=libaio.so.1.0.1
+ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
 
-all: test
+install:
+	pipenv install
+
+dist/$(LIBAIO_SO):
+	aws s3 cp s3://$(S3_BUCKET)/$(LIBAIO_SO) dist/$(LIBAIO_SO)
+
+dist/$(ORACLE_ZIP):
+	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) dist/$(ORACLE_ZIP)
+
+deps: dist/$(LIBAIO_SO) dist/$(ORACLE_ZIP)
+
+wheel:
+	pipenv run python setup.py bdist_wheel
+
+container:
+	docker build -t carbon:`git describe --always` -t carbon:latest .
+
+dist: deps wheel container
+	@tput setaf 2
+	@tput bold
+	@echo "Finished building docker image. Try running:"
+	@echo "  $$ docker run --rm carbon:`git describe --always`"
+	@tput sgr0
 
 clean:
 	find . -name "*.pyc" -print0 | xargs -0 rm -f
 	find . -name '__pycache__' -print0 | xargs -0 rm -rf
-	rm -rf .coverage .tox *.egg-info .eggs build/ build-aws/ dist/ dist-aws/
-
-install:
-	pipenv install
+	rm -rf .coverage .tox *.egg-info .eggs build/ dist/
 
 test:
 	tox
 
 tests: test
 
-release:
-	pipenv run bumpversion $(RELEASE_TYPE)
-	@tput setaf 2
-	@echo Built release for `git describe --tag`. Make sure to run:
-	@echo "  $$ git push origin `git rev-parse --abbrev-ref HEAD` tag `git describe --tag`"
-	@tput sgr0
-
 update:
+	pipenv clean
 	pipenv update --dev
-	pipenv lock -r > requirements.txt
