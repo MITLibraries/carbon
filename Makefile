@@ -7,13 +7,10 @@ ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
 install:
 	pipenv install
 
-vendor/$(LIBAIO_SO):
-	aws s3 cp s3://$(S3_BUCKET)/$(LIBAIO_SO) vendor/$(LIBAIO_SO)
-
 vendor/$(ORACLE_ZIP):
 	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
-deps: vendor/$(LIBAIO_SO) vendor/$(ORACLE_ZIP)
+deps: vendor/$(ORACLE_ZIP)
 
 wheel:
 	pipenv run python setup.py bdist_wheel
