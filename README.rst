@@ -1,7 +1,7 @@
 carbon
 ======
 
-Carbon is a tool for generating a feed of people that can be loaded into Symplectic Elements. It is run as a Lambda by a scheduled CloudWatch event.
+Carbon is a tool for generating a feed of people that can be loaded into Symplectic Elements. It is designed to be run as a container.
 
 Developing
 ----------
@@ -25,27 +25,25 @@ If you do need to connect to the data warehouse, you will also need to install t
 
 On Linux, you will also need to make sure you have libaio installed. You can probably just use your system's package manager to install this easily. The package may be called ``libaio1``.
 
-The Lambda Package
-------------------
+Building
+--------
 
-The Lambda package is built with the ``build.sh`` script.
+Running ``make dist`` creates a new container that is tagged as ``carbon:latest``. It will also add tags for the ECR registry with both the ``latest`` and the git short hash. The first build will take some time, but subsequent builds should be fast.
 
-**IMPORTANT**: Both the ``cx_Oracle`` and ``lxml`` packages use platform dependent wheels, so you if you are planning on using the Lambda package you *must* do this step on a Linux x86_64 architecture.
+We are restricted from distributing the Oracle client library, so a copy is kept in a private S3 bucket for use when building the container image. If you are updating this, make sure you are using a Linux x86_64 version.
 
-We are restricted from distributing the Oracle client library, so a copy is kept in a private S3 bucket for use when building the Lambda. The Lambda execution context does not provide libaio, so a copy of this is also kept in the bucket. If you are updating either of these, make sure you are using a Linux x86_64 version. To be on the safe side, use https://github.com/lambci/docker-lambda to get the libaio library as that will ensure you are getting one that's been linked against an appropriate version of glibc.
-
-The build process downloads each of these files from S3 so you should have the AWS CLI installed and configured to authenticate using an account with appropriate access.
+The build process downloads this file from S3 so you should have the AWS CLI installed and configured to authenticate using an account with appropriate access.
 
 Deploying
 ---------
 
-Deployment is currently being handled by Travis. When a PR is merged onto the master branch Travis will build a new Lambda package, push it to S3 and update the Lambda function to point to the new package.
+Deployment is currently being handled by Travis. When a PR is merged onto the master branch Travis will build a new container image, tag it both with ``latest`` and with the git short hash, and then push both tags to the ECR registry.
 
-If you need to deploy a new package outside of Travis then do the following, *noting the restrictions on running build.sh described above*::
+If you need to deploy a new image outside of Travis then do the following::
 
     $ cd carbon
-    $ ./build.sh
-    $ ./publish.sh --upload
+    $ make clean
+    $ make dist && make publish
 
 Configuration
 ^^^^^^^^^^^^^

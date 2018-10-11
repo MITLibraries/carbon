@@ -16,16 +16,12 @@ script:
   - tox -e $TOX_ENV
 jobs:
   include:
-    - stage: ECR deploy
+    - stage: publish image
       install:
         - pip install pipenv awscli
       script: skip
       before_deploy: make dist
-      #deploy:
-      #  skip_cleanup: true
-      #  provider: s3
-      #  access_key_id: $AWS_ACCESS_KEY_ID
-      #  secret_access_key: $AWS_SECRET_ACCESS_KEY
-      #  bucket: "carbon-deploy"
-      #  local_dir: "dist-aws"
-      #after_deploy: bash publish.sh
+      deploy:
+        skip_cleanup: true
+        provider: script
+        script: make publish
