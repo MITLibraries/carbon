@@ -46,6 +46,6 @@ update:
 	pipenv update --dev
 
 publish:
-	$(aws ecr get-login --no-include-email --region us-east-1)
+	$$(aws ecr get-login --no-include-email --region us-east-1)
 	docker push $(ECR_REGISTRY)/carbon:latest
 	docker push $(ECR_REGISTRY)/carbon:`git describe --always`
