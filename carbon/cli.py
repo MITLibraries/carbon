@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
+import json
+
+import boto3
 import click
 
 from carbon.app import Config, FTPFeeder, Writer
@@ -23,8 +26,11 @@ from carbon.db import engine
 @click.option('--ftp-pass', envvar='FTP_PASS', help='FTP password')
 @click.option('--ftp-path', envvar='FTP_PATH',
               help='Full path to file on FTP server')
+@click.option('--secret-id', help='AWS Secrets id containing DB connection '
+                                  'string and FTP password. If given, will '
+                                  'override other command line options.')
 def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
-         ftp_path):
+         ftp_path, secret_id):
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -44,10 +50,16 @@ def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
     server. The server should support FTP over TLS. Only one of -o/--out or
     --ftp should be used.
     """
-    engine.configure(db)
+    cfg = Config(CARBON_DB=db, FTP_USER=ftp_user, FTP_PASS=ftp_pass,
+                 FTP_PATH=ftp_path, FTP_HOST=ftp_host, FTP_PORT=ftp_port)
+    if secret_id is not None:
+        client = boto3.client('secretsmanager')
+        secret = client.get_secret_value(SecretId=secret_id)
+        secret_env = json.loads(secret['SecretString'])
+        cfg.update(secret_env)
+
+    engine.configure(cfg['CARBON_DB'])
     if ftp:
-        cfg = Config(FTP_USER=ftp_user, FTP_PASS=ftp_pass, FTP_PATH=ftp_path,
-                     FTP_HOST=ftp_host, FTP_PORT=ftp_port)
         FTPFeeder({'feed_type': feed_type}, None, cfg).run()
     else:
         Writer(out=out).write(feed_type)
