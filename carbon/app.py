@@ -118,9 +118,10 @@ def initialize_part(name):
         assert initialize_part(u'влад') == u'В'
 
     """
-    name = re.sub('[^\w\s-]', '', name, flags=re.UNICODE)
-    return ''.join([x[:1] for x in re.split('(\W+)', name, flags=re.UNICODE)])\
-        .upper()
+    name = re.sub(r'[^\w\s-]', '', name, flags=re.UNICODE)
+    return ''.join([x[:1] for x in re.split(r'(\W+)', name,
+                                            flags=re.UNICODE)])\
+             .upper()
 
 
 def group_name(dlc, sub_area):
