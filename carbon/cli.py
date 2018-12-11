@@ -6,7 +6,7 @@ import json
 import boto3
 import click
 
-from carbon.app import Config, FTPFeeder, Writer
+from carbon.app import Config, FTPFeeder, Writer, sns_log
 from carbon.db import engine
 
 
@@ -14,8 +14,7 @@ from carbon.db import engine
 @click.version_option()
 @click.argument('feed_type', type=click.Choice(['people', 'articles']))
 @click.option('--db', envvar='CARBON_DB', help='Database connection string')
-@click.option('-o', '--out', help='Output file', type=click.File('wb'),
-              default='-')
+@click.option('-o', '--out', help='Output file', type=click.File('wb'))
 @click.option('--ftp', is_flag=True, help='Send output to FTP server; do not '
                                           'use this with the -o/--out option')
 @click.option('--ftp-host', envvar='FTP_HOST', help='Hostname of FTP server',
@@ -29,8 +28,13 @@ from carbon.db import engine
 @click.option('--secret-id', help='AWS Secrets id containing DB connection '
                                   'string and FTP password. If given, will '
                                   'override other command line options.')
+@click.option('--sns-topic', help='AWS SNS Topic ARN. If given, a message '
+                                  'will be sent when the load begins and '
+                                  'then another message will be sent with '
+                                  'the outcome of the load.')
+@sns_log
 def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
-         ftp_path, secret_id):
+         ftp_path, secret_id, sns_topic):
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -60,6 +64,8 @@ def main(feed_type, db, out, ftp, ftp_host, ftp_port, ftp_user, ftp_pass,
 
     engine.configure(cfg['CARBON_DB'])
     if ftp:
+        click.echo("Starting carbon run for {}".format(feed_type))
         FTPFeeder({'feed_type': feed_type}, None, cfg).run()
+        click.echo("Finished carbon run for {}".format(feed_type))
     else:
         Writer(out=out).write(feed_type)

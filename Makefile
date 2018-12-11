@@ -21,9 +21,11 @@ wheel:
 	pipenv run python setup.py bdist_wheel
 
 container:
-	docker build -t $(ECR_REGISTRY)/carbon:latest \
-		-t $(ECR_REGISTRY)/carbon:`git describe --always` \
-		-t carbon:latest .
+	docker build -t $(ECR_REGISTRY)/carbon-stage:latest \
+		-t $(ECR_REGISTRY)/carbon-stage:`git describe --always` \
+		-t $(ECR_REGISTRY)/carbon-prod:latest \
+		-t $(ECR_REGISTRY)/carbon-prod:`git describe --always` \
+		-t carbon-stage:latest .
 
 dist: deps wheel container ## Build docker image
 	@tput setaf 2
@@ -51,5 +53,7 @@ update: ## Update all python dependencies
 
 publish: ## Push and tag the latest image (use `make dist && make publish`)
 	$$(aws ecr get-login --no-include-email --region us-east-1)
-	docker push $(ECR_REGISTRY)/carbon:latest
-	docker push $(ECR_REGISTRY)/carbon:`git describe --always`
+	docker push $(ECR_REGISTRY)/carbon-stage:latest
+	docker push $(ECR_REGISTRY)/carbon-stage:`git describe --always`
+	docker push $(ECR_REGISTRY)/carbon-prod:latest
+	docker push $(ECR_REGISTRY)/carbon-prod:`git describe --always`

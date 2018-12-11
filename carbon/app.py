@@ -2,12 +2,14 @@
 from __future__ import absolute_import
 from contextlib import contextmanager, closing
 from datetime import datetime
-from functools import partial
+from functools import partial, update_wrapper
 from ftplib import FTP, FTP_TLS
 import os
 import re
 import threading
 
+import boto3
+import click
 from lxml import etree as ET
 from sqlalchemy import func, select
 
@@ -368,3 +370,46 @@ class FTPFeeder:
                                 int(self.config['FTP_PORT']),
                                 self.ssl_ctx)
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
+
+
+def sns_log(f):
+    """AWS SNS log decorator for wrapping a click command.
+
+    This can be used as a decorator for a click command. It will wrap
+    execution of the click command in a try/except so that any exception
+    can be logged to the SNS topic before being re-raised.
+    """
+    msg_start = ("[{}] Starting carbon run for the {} feed in the {} "
+                 "environment.")
+    msg_success = ("[{}] Finished carbon run for the {} feed in the {} "
+                   "environment.")
+    msg_fail = ("[{}] The following problem was encountered during the "
+                "carbon run for the {} feed in the {} environment:\n\n"
+                "{}")
+
+    @click.pass_context
+    def wrapped(ctx, *args, **kwargs):
+        sns_id = ctx.params.get('sns_topic')
+        if sns_id:
+            client = boto3.client('sns')
+            stage = ctx.params.get('ftp_path', '').lstrip('/').split('/')[0]
+            feed = ctx.params.get('feed_type', '')
+            client.publish(TopicArn=sns_id, Subject="Carbon run",
+                           Message=msg_start.format(
+                               datetime.utcnow().isoformat(), feed, stage))
+            try:
+                res = ctx.invoke(f, *args, **kwargs)
+            except Exception as e:
+                client.publish(TopicArn=sns_id, Subject="Carbon run",
+                               Message=msg_fail.format(
+                                   datetime.utcnow().isoformat(), feed, stage,
+                                   e))
+                raise
+            else:
+                client.publish(TopicArn=sns_id, Subject="Carbon run",
+                               Message=msg_success.format(
+                                   datetime.utcnow().isoformat(), feed, stage))
+        else:
+            res = ctx.invoke(f, *args, **kwargs)
+        return res
+    return update_wrapper(wrapped, f)
