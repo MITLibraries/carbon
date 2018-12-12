@@ -19,14 +19,14 @@ def runner():
 
 
 def test_people_returns_people(runner, xml_data):
-    res = runner.invoke(main, ['--db', 'sqlite://', 'people'])
+    res = runner.invoke(main, ['--db', 'sqlite://', '-o', '-', 'people'])
     assert res.exit_code == 0
     assert res.stdout_bytes == \
         ET.tostring(xml_data, encoding="UTF-8", xml_declaration=True)
 
 
 def test_articles_returns_articles(runner, articles_data):
-    res = runner.invoke(main, ['--db', 'sqlite://', 'articles'])
+    res = runner.invoke(main, ['--db', 'sqlite://', '-o', '-', 'articles'])
     assert res.exit_code == 0
     assert res.stdout_bytes == \
         ET.tostring(articles_data, encoding='UTF-8', xml_declaration=True)
