@@ -249,7 +249,7 @@ class FTPReader:
 
     def __call__(self):
         """Transfer a file using FTP over TLS."""
-        ftps = CarbonCopyFTPS(context=self.ctx)
+        ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
         ftps.connect(self.host, self.port)
         ftps.login(self.user, self.passwd)
         ftps.prot_p()
