@@ -325,9 +325,10 @@ def _add_person(xf, person):
     add_child(record, 'field',
               group_name(person['DLC_NAME'], person['PERSONNEL_SUBAREA_CODE']),
               name='[PrimaryGroupDescriptor]')
-    add_child(record, 'field',
-              person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
-              name='[ArriveDate]')
+    if person['ORIGINAL_HIRE_DATE'] is not None:
+        add_child(record, 'field',
+                  person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
+                  name='[ArriveDate]')
     add_child(record, 'field',
               person['APPOINTMENT_END_DATE'].strftime("%Y-%m-%d"),
               name='[LeaveDate]')
