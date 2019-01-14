@@ -135,7 +135,6 @@ def xml_records(E):
             E.field('1', {'name': '[LoginAllowed]'}),
             E.field('Nuclear Science Non-faculty',
                     {'name': '[PrimaryGroupDescriptor]'}),
-            E.field('2015-01-01', {'name': '[ArriveDate]'}),
             E.field('2999-12-31', {'name': '[LeaveDate]'}),
             E.field('http://example.com/2', {'name': '[Generic01]'}),
             E.field('COAC', {'name': '[Generic02]'}),

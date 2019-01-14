@@ -26,7 +26,7 @@ person:
     MIDDLE_NAME: Hǫlgabrúðr
     LAST_NAME: Hammerson
     EMAIL_ADDRESS: thor@example.com
-    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    ORIGINAL_HIRE_DATE: null
     APPOINTMENT_END_DATE: !!timestamp 2999-12-31 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
