@@ -26,7 +26,7 @@ person:
     MIDDLE_NAME: Hǫlgabrúðr
     LAST_NAME: Hammerson
     EMAIL_ADDRESS: thor@example.com
-    ORIGINAL_HIRE_DATE: null
+    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
     APPOINTMENT_END_DATE: !!timestamp 2999-12-31 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
@@ -115,3 +115,22 @@ dlc:
     HR_ORG_UNIT_ID: "6"
     DLC_NAME: Nuclear Science
     ORG_HIER_SCHOOL_AREA_NAME: ENGINEERING AREA
+---
+person:
+    MIT_ID: "123450"
+    KRB_NAME_UPPERCASE: NOARRIVEDATE
+    FIRST_NAME: Egil
+    MIDDLE_NAME: Axehand
+    LAST_NAME: Skallagrimsson
+    EMAIL_ADDRESS: egil@example.com
+    APPOINTMENT_END_DATE: !!timestamp 2999-12-31 00:00:00.0
+    JOB_TITLE: Adjunct Professor
+    PERSONNEL_SUBAREA_CODE: CFAT
+    HR_ORG_UNIT_ID: "6"
+orcid:
+    MIT_ID: "123450"
+    ORCID: http://example.com/1
+dlc:
+    HR_ORG_UNIT_ID: "6"
+    DLC_NAME: Chemistry
+    ORG_HIER_SCHOOL_AREA_NAME: SCIENCE AREA
