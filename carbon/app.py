@@ -69,6 +69,7 @@ def people():
         .where(persons.c.KRB_NAME_UPPERCASE != None) \
         .where(persons.c.KRB_NAME_UPPERCASE != 'UNKNOWN') \
         .where(persons.c.MIT_ID != None) \
+        .where(persons.c.ORIGINAL_HIRE_DATE != None) \
         .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1)) \
         .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS)) \
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES)) \
@@ -325,10 +326,9 @@ def _add_person(xf, person):
     add_child(record, 'field',
               group_name(person['DLC_NAME'], person['PERSONNEL_SUBAREA_CODE']),
               name='[PrimaryGroupDescriptor]')
-    if person['ORIGINAL_HIRE_DATE'] is not None:
-        add_child(record, 'field',
-                  person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
-                  name='[ArriveDate]')
+    add_child(record, 'field',
+              person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
+              name='[ArriveDate]')
     add_child(record, 'field',
               person['APPOINTMENT_END_DATE'].strftime("%Y-%m-%d"),
               name='[LeaveDate]')
