@@ -4,6 +4,7 @@ SHELL=/bin/bash
 S3_BUCKET=carbon-deploy
 ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
 ECR_REGISTRY=672626379771.dkr.ecr.us-east-1.amazonaws.com
+DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
 help: ## Print this message
 	@awk 'BEGIN { FS = ":.*##"; print "Usage:  make <target>\n\nTargets:" } \
@@ -23,15 +24,13 @@ wheel:
 container:
 	docker build -t $(ECR_REGISTRY)/carbon-stage:latest \
 		-t $(ECR_REGISTRY)/carbon-stage:`git describe --always` \
-		-t $(ECR_REGISTRY)/carbon-prod:latest \
-		-t $(ECR_REGISTRY)/carbon-prod:`git describe --always` \
-		-t carbon-stage:latest .
+		-t carbon .
 
 dist: deps wheel container ## Build docker image
 	@tput setaf 2
 	@tput bold
 	@echo "Finished building docker image. Try running:"
-	@echo "  $$ docker run --rm carbon:latest"
+	@echo "  $$ docker run --rm carbon"
 	@tput sgr0
 
 clean: ## Remove build artifacts
@@ -55,5 +54,11 @@ publish: ## Push and tag the latest image (use `make dist && make publish`)
 	$$(aws ecr get-login --no-include-email --region us-east-1)
 	docker push $(ECR_REGISTRY)/carbon-stage:latest
 	docker push $(ECR_REGISTRY)/carbon-stage:`git describe --always`
+
+promote: ## Promote the current staging build to production
+	$$(aws ecr get-login --no-include-email --region us-east-1)
+	docker pull $(ECR_REGISTRY)/carbon-stage:latest
+	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:latest
+	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:$(DATETIME)
 	docker push $(ECR_REGISTRY)/carbon-prod:latest
-	docker push $(ECR_REGISTRY)/carbon-prod:`git describe --always`
+	docker push $(ECR_REGISTRY)/carbon-prod:$(DATETIME)
