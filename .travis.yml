@@ -16,6 +16,10 @@ script:
   - tox -e $TOX_ENV
 jobs:
   include:
+    - name: Build container
+      before_install: pip install pipenv awscli
+      install: pipenv install
+      script: make dist
     - stage: publish image
       install:
         - pip install pipenv awscli

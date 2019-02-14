@@ -1,7 +1,7 @@
 .PHONY: help install deps wheel container dist clean distclean test tests \
 				update publish
 SHELL=/bin/bash
-S3_BUCKET=carbon-deploy
+S3_BUCKET=deploy-mitlib-stage
 ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
 ECR_REGISTRY=672626379771.dkr.ecr.us-east-1.amazonaws.com
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
