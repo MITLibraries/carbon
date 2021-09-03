@@ -1,4 +1,4 @@
-.PHONY: help install deps wheel container dist clean distclean test tests \
+.PHONY: help install deps wheel container dist clean distclean test \
 				update publish
 SHELL=/bin/bash
 S3_BUCKET=deploy-mitlib-stage
@@ -10,8 +10,8 @@ help: ## Print this message
 	@awk 'BEGIN { FS = ":.*##"; print "Usage:  make <target>\n\nTargets:" } \
 		/^[-_[:alpha:]]+:.?*##/ { printf "  %-15s%s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-install: ## Install python dependencies (runs `pipenv install`)
-	pipenv install
+install: ## Install python dependencies
+	pipenv install --dev
 
 vendor/$(ORACLE_ZIP):
 	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
@@ -42,9 +42,13 @@ distclean: clean ## Remove build artifacts and vendor libs
 	rm -rf vendor/
 
 test: ## Run tests
-	tox
+	pipenv run pytest --cov=carbon
 
-tests: test
+coveralls: test
+	pipenv run coveralls
+
+lint: ## Run linters
+	pipenv run flake8 carbon
 
 update: ## Update all python dependencies
 	pipenv clean
