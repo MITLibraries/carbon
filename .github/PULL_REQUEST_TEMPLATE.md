@@ -18,8 +18,7 @@ Delete this section if it isn't applicable to the PR.
 YES | NO
 
 #### Developer
-- [ ] Docstrings and README are updated to reflect all changes as needed
-- [ ] Sphinx source docs are updated to reflect all changes as needed
+- [ ] README is updated to reflect all changes as needed
 - [ ] All related Jira tickets are linked in commit message(s)
 
 #### Code Reviewer
