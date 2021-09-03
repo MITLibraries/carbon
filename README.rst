@@ -60,9 +60,9 @@ Deploying
 Staging
 ^^^^^^^
 
-Lacking a fully automated deployment pipeline, the final step of deploying to prod will need to be done manually. Staging builds are fully automated by Travis. When a PR is merged onto the master branch Travis will build a new container image, tag it both with ``latest`` and with the git short hash, and then push both tags to the ECR staging registry. A Cloudwatch scheduled event will periodically trigger the Fargate task to run. This task will use the latest image from the ECR registry.
+Lacking a fully automated deployment pipeline, the final step of deploying to prod will need to be done manually. Staging builds are fully automated by Github Actions. When a PR is merged onto the main branch Github Actions will build a new container image, tag it both with ``latest`` and with the git short hash, and then push both tags to the ECR staging registry. A Cloudwatch scheduled event will periodically trigger the Fargate task to run. This task will use the latest image from the ECR registry.
 
-If you need to deploy a new image outside of Travis then do the following::
+If you need to deploy a new image outside of Github Actions then do the following::
 
     $ cd carbon
     $ make clean
@@ -132,4 +132,3 @@ View the help menu for the ``carbon`` command::
 Carbon will generate an XML feed that can be uploaded to Symplectic. The command requires an SQLAlchemy database connection string, a feed type and, optionally, an output file. For connecting to Oracle use ``oracle://<username>:<password>@<server>:1521/<sid>``. The database connection string can also be passed by an environment variable named ``CARBON_DB``. If no output file is specified, the feed will be printed to stdout.::
 
     (carbon)$ env CARBON_DB sqlite:///people.db carbon people
-
