@@ -9,6 +9,7 @@ pytest-cov = "*"
 PyYAML = "*"
 pyftpdlib = "*"
 pyopenssl = "*"
+flake8 = "*"
 
 [packages]
 click = "*"

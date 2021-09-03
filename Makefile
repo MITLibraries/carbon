@@ -27,11 +27,8 @@ container:
 		-t carbon .
 
 dist: deps wheel container ## Build docker image
-	@tput setaf 2
-	@tput bold
 	@echo "Finished building docker image. Try running:"
 	@echo "  $$ docker run --rm carbon"
-	@tput sgr0
 
 clean: ## Remove build artifacts
 	find . -name "*.pyc" -print0 | xargs -0 rm -f
