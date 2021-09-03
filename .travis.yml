@@ -3,9 +3,9 @@ notifications:
   email: false
 language: python
 python:
-  - "3.6"
+  - "3.9"
 env:
-  - TOX_ENV=py36
+  - TOX_ENV=py39
   - TOX_ENV=coveralls
   - TOX_ENV=flake8
 services:
