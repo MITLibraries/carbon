@@ -1,4 +1,4 @@
-FROM python:3.6
+FROM python:3.9
 
 ENV LD_LIBRARY_PATH /opt/lib/
 
