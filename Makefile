@@ -52,12 +52,16 @@ update: ## Update all python dependencies
 	pipenv update --dev
 
 publish: ## Push and tag the latest image (use `make dist && make publish`)
-	$$(aws ecr get-login --no-include-email --region us-east-1)
+	aws ecr get-login-password --region us-east-1 | docker login \
+    --username AWS \
+    --password-stdin $(ECR_REGISTRY)
 	docker push $(ECR_REGISTRY)/carbon-stage:latest
 	docker push $(ECR_REGISTRY)/carbon-stage:`git describe --always`
 
 promote: ## Promote the current staging build to production
-	$$(aws ecr get-login --no-include-email --region us-east-1)
+	aws ecr get-login-password --region us-east-1 | docker login \
+    --username AWS \
+    --password-stdin $(ECR_REGISTRY)
 	docker pull $(ECR_REGISTRY)/carbon-stage:latest
 	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:latest
 	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:$(DATETIME)
