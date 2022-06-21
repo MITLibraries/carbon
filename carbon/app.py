@@ -58,6 +58,7 @@ def people():
     sql = select([persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
+                  persons.c.DATE_TO_FACULTY,
                   persons.c.ORIGINAL_HIRE_DATE, dlcs.c.DLC_NAME,
                   persons.c.PERSONNEL_SUBAREA_CODE,
                   persons.c.APPOINTMENT_END_DATE, orcids.c.ORCID,
@@ -130,6 +131,13 @@ def initialize_part(name):
 def group_name(dlc, sub_area):
     qualifier = 'Faculty' if sub_area in ('CFAT', 'CFAN') else 'Non-faculty'
     return "{} {}".format(dlc, qualifier)
+
+
+def hire_date_string(original_start_date, date_to_faculty):
+    if date_to_faculty:
+        return date_to_faculty.strftime("%Y-%m-%d")
+    else:
+        return original_start_date.strftime("%Y-%m-%d")
 
 
 def _ns(namespace, element):
@@ -327,7 +335,8 @@ def _add_person(xf, person):
               group_name(person['DLC_NAME'], person['PERSONNEL_SUBAREA_CODE']),
               name='[PrimaryGroupDescriptor]')
     add_child(record, 'field',
-              person['ORIGINAL_HIRE_DATE'].strftime("%Y-%m-%d"),
+              hire_date_string(person['ORIGINAL_HIRE_DATE'],
+                               person['DATE_TO_FACULTY']),
               name='[ArriveDate]')
     add_child(record, 'field',
               person['APPOINTMENT_END_DATE'].strftime("%Y-%m-%d"),
