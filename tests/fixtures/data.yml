@@ -7,6 +7,7 @@ person:
     LAST_NAME: Gaz
     EMAIL_ADDRESS: foobar@example.com
     ORIGINAL_HIRE_DATE: !!timestamp 2001-01-01 00:00:00.0
+    DATE_TO_FACULTY: Null
     APPOINTMENT_END_DATE: !!timestamp 2010-01-01 00:00:00.0
     JOB_TITLE: Adjunct Professor
     PERSONNEL_SUBAREA_CODE: CFAT
@@ -26,7 +27,8 @@ person:
     MIDDLE_NAME: Hǫlgabrúðr
     LAST_NAME: Hammerson
     EMAIL_ADDRESS: thor@example.com
-    ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    ORIGINAL_HIRE_DATE: !!timestamp 2010-01-01 00:00:00.0
+    DATE_TO_FACULTY: !!timestamp 2015-01-01 00:00:00.0
     APPOINTMENT_END_DATE: !!timestamp 2999-12-31 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
@@ -47,6 +49,7 @@ person:
     MIDDLE_NAME: Says
     LAST_NAME: Super
     ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    DATE_TO_FACULTY: Null
     APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
@@ -66,6 +69,7 @@ person:
     LAST_NAME: Else
     EMAIL_ADDRESS: thor@example.com
     ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    DATE_TO_FACULTY: Null
     APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
@@ -85,6 +89,7 @@ person:
     MIDDLE_NAME: One
     EMAIL_ADDRESS: thor@example.com
     ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    DATE_TO_FACULTY: Null
     APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
@@ -104,6 +109,7 @@ person:
     LAST_NAME: Else
     EMAIL_ADDRESS: thor@example.com
     ORIGINAL_HIRE_DATE: !!timestamp 2015-01-01 00:00:00.0
+    DATE_TO_FACULTY: Null
     APPOINTMENT_END_DATE: !!timestamp 2999-01-01 00:00:00.0
     JOB_TITLE: Visiting Engineer
     PERSONNEL_SUBAREA_CODE: COAC
