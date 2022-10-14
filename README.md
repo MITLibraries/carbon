@@ -48,13 +48,15 @@ The build process downloads this file from S3 so you should have the AWS CLI ins
 
 ## Deploying
 
+In the AWS Organization, we have a automated pipeline from Dev --> Stage --> Prod, handled by GitHub Actions. 
+
 ### Staging
 
-In the AWS Organization, we have a automated pipeline from Dev --> Stage --> Prod, handled by GitHub Actions. When a PR is merged onto the main branch Github Actions will build a new container image, tag it both with `latest` and with the git short hash, and then push both the container with both tags to the ECR repository in Stage-Workloads. An EventBridge scheduled event will periodically trigger the Fargate task to run. This task will use the latest image from the ECR registry.
+When a PR is merged onto the `main` branch, Github Actions will build a new container image, tag it both with `latest`, the git short hash, and the PR number, and then push the container with all the tags to the ECR repository in Stage. An EventBridge scheduled event will periodically trigger the Fargate task to run. This task will use the latest image from the ECR registry.
 
 ### Production
 
-Tagging a release on the `main` branch will promote a copy of the `latest` container from Stage-Worklods to Prod-Workloads.
+Tagging a release on the `main` branch will promote a copy of the `latest` container from Stage-Worklods to Prod.
 
 ## Configuration
 
