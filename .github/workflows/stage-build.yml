@@ -21,4 +21,4 @@ jobs:
       GHA_ROLE: "carbon-gha-stage"
       ECR: "carbon-stage"
       # FUNCTION: ""
-      PREBUILD: "make install && make deps && make wheel"
+      PREBUILD: "python -m pip install --upgrade pip pipenv && make install && make deps && make wheel"
