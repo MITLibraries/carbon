@@ -1,9 +1,17 @@
-.PHONY: help install deps wheel container dist clean distclean test \
-				update publish
+.PHONY: help install deps wheel clean distclean test lint coveralls \
+				update dist-dev publish-dev dist-stage publish-stage
+
+### This is the Terraform-generated header for carbon-dev. If    ###
+###   this is a Lambda repo, uncomment the FUNCTION line below   ###
+###   and review the other commented lines in the document.      ###
+ECR_NAME_DEV:=carbon-dev
+ECR_URL_DEV:=222053980223.dkr.ecr.us-east-1.amazonaws.com/carbon-dev
+# FUNCTION_DEV:=
+### End of Terraform-generated header                            ###
+
 SHELL=/bin/bash
-S3_BUCKET=deploy-mitlib-stage
+S3_BUCKET=shared-files-222053980223
 ORACLE_ZIP=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
-ECR_REGISTRY=672626379771.dkr.ecr.us-east-1.amazonaws.com
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
 help: ## Print this message
@@ -14,21 +22,12 @@ install: ## Install python dependencies
 	pipenv install --dev
 
 vendor/$(ORACLE_ZIP):
-	aws s3 cp s3://$(S3_BUCKET)/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
+	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
 deps: vendor/$(ORACLE_ZIP)
 
 wheel:
 	pipenv run python setup.py bdist_wheel
-
-container:
-	docker build -t $(ECR_REGISTRY)/carbon-stage:latest \
-		-t $(ECR_REGISTRY)/carbon-stage:`git describe --always` \
-		-t carbon .
-
-dist: deps wheel container ## Build docker image
-	@echo "Finished building docker image. Try running:"
-	@echo "  $$ docker run --rm carbon"
 
 clean: ## Remove build artifacts
 	find . -name "*.pyc" -print0 | xargs -0 rm -f
@@ -51,19 +50,30 @@ update: ## Update all python dependencies
 	pipenv clean
 	pipenv update --dev
 
-publish: ## Push and tag the latest image (use `make dist && make publish`)
-	aws ecr get-login-password --region us-east-1 | docker login \
-    --username AWS \
-    --password-stdin $(ECR_REGISTRY)
-	docker push $(ECR_REGISTRY)/carbon-stage:latest
-	docker push $(ECR_REGISTRY)/carbon-stage:`git describe --always`
+### Terraform-generated Developer Deploy Commands for Dev environment    ###
+dist-dev: ## Build docker container (intended for developer-based manual build)
+	docker build --platform linux/amd64 \
+	    -t $(ECR_URL_DEV):latest \
+		-t $(ECR_URL_DEV):`git describe --always` \
+		-t $(ECR_NAME_DEV):latest .
 
-promote: ## Promote the current staging build to production
-	aws ecr get-login-password --region us-east-1 | docker login \
-    --username AWS \
-    --password-stdin $(ECR_REGISTRY)
-	docker pull $(ECR_REGISTRY)/carbon-stage:latest
-	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:latest
-	docker tag $(ECR_REGISTRY)/carbon-stage:latest $(ECR_REGISTRY)/carbon-prod:$(DATETIME)
-	docker push $(ECR_REGISTRY)/carbon-prod:latest
-	docker push $(ECR_REGISTRY)/carbon-prod:$(DATETIME)
+publish-dev: dist-dev ## Build, tag and push (intended for developer-based manual publish)
+	docker login -u AWS -p $$(aws ecr get-login-password --region us-east-1) $(ECR_URL_DEV)
+	docker push $(ECR_URL_DEV):latest
+	docker push $(ECR_URL_DEV):`git describe --always`
+
+### Terraform-generated manual shortcuts for deploying to Stage. This requires  ###
+###   that ECR_NAME_STAGE, ECR_URL_STAGE, and FUNCTION_STAGE environment        ###
+###   variables are set locally by the developer and that the developer has     ###
+###   authenticated to the correct AWS Account. The values for the environment  ###
+###   variables can be found in the stage_build.yml caller workflow.            ###
+dist-stage: ## Only use in an emergency
+	docker build --platform linux/amd64 \
+	    -t $(ECR_URL_STAGE):latest \
+		-t $(ECR_URL_STAGE):`git describe --always` \
+		-t $(ECR_NAME_STAGE):latest .
+
+publish-stage: ## Only use in an emergency
+	docker login -u AWS -p $$(aws ecr get-login-password --region us-east-1) $(ECR_URL_STAGE)
+	docker push $(ECR_URL_STAGE):latest
+	docker push $(ECR_URL_STAGE):`git describe --always`
