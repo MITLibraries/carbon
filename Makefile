@@ -24,7 +24,7 @@ install: ## Install python dependencies
 vendor/$(ORACLE_ZIP):
 	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
-deps: vendor/$(ORACLE_ZIP)
+deps: vendor/$(ORACLE_ZIP) wheel
 
 wheel:
 	pipenv run python setup.py bdist_wheel

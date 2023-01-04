@@ -1,4 +1,4 @@
-.coverage
+.coverage*
 *.DS_Store
 .tox
 *.pyc
@@ -11,3 +11,6 @@ dist-aws/
 tests/db/
 .pytest_cache
 vendor/
+.env
+*.log
+output/
