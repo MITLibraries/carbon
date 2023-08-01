@@ -55,7 +55,7 @@ def people():
 
     Returns an iterator of person dictionaries.
     """
-    sql = select([persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
+    sql = select(persons.c.MIT_ID, persons.c.KRB_NAME_UPPERCASE,
                   persons.c.FIRST_NAME, persons.c.MIDDLE_NAME,
                   persons.c.LAST_NAME, persons.c.EMAIL_ADDRESS,
                   persons.c.DATE_TO_FACULTY,
@@ -63,8 +63,8 @@ def people():
                   persons.c.PERSONNEL_SUBAREA_CODE,
                   persons.c.APPOINTMENT_END_DATE, orcids.c.ORCID,
                   dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
-                  dlcs.c.HR_ORG_LEVEL5_NAME, ]) \
-        .select_from(persons.outerjoin(orcids).join(dlcs)) \
+                  dlcs.c.HR_ORG_LEVEL5_NAME) \
+        .select_from(persons).outerjoin(orcids).join(dlcs) \
         .where(persons.c.EMAIL_ADDRESS != None) \
         .where(persons.c.LAST_NAME != None) \
         .where(persons.c.KRB_NAME_UPPERCASE != None) \
@@ -76,8 +76,9 @@ def people():
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES)) \
         .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))  # noqa: E711
     with closing(engine().connect()) as conn:
-        for row in conn.execute(sql):
-            yield dict(zip(row.keys(), row))
+        result = conn.execute(sql)
+        for row in result:
+            yield dict(zip(result.keys(), row))
 
 
 def articles():
@@ -85,14 +86,15 @@ def articles():
 
     Returns an iterator over the AA_ARTICLE table.
     """
-    sql = select([aa_articles]) \
+    sql = select(aa_articles) \
         .where(aa_articles.c.ARTICLE_ID != None) \
         .where(aa_articles.c.ARTICLE_TITLE != None) \
         .where(aa_articles.c.DOI != None) \
         .where(aa_articles.c.MIT_ID != None)  # noqa: E711
     with closing(engine().connect()) as conn:
-        for row in conn.execute(sql):
-            yield dict(zip(row.keys(), row))
+        result = conn.execute(sql)
+        for row in result:
+            yield dict(zip(result.keys(), row))
 
 
 def initials(*args):

@@ -38,8 +38,9 @@ distclean: clean ## Remove build artifacts and vendor libs
 	rm -rf vendor/
 
 test: ## Run tests
-	pipenv run pytest --cov=carbon
-
+	pipenv run coverage run --source=carbon -m pytest -vv
+	pipenv run coverage report -m
+	
 coveralls: test
 	pipenv run coveralls
 
