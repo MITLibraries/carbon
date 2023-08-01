@@ -1,17 +1,16 @@
-FROM python:3.9
+FROM python:3.11-slim
 
+# Set path for Oracle client libraries
 ENV LD_LIBRARY_PATH /opt/lib/
 
+# Install Oracle dependencies
 RUN apt-get update && apt-get install -y unzip libaio1
-RUN pip install --upgrade pip
-RUN pip install pipenv
-COPY vendor/instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip /
-RUN unzip -j instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip -d /opt/lib/
+COPY vendor/instantclient-basiclite-linux.x64-21.9.0.0.0dbru.zip /
+RUN unzip -j instantclient-basiclite-linux.x64-21.9.0.0.0dbru.zip -d /opt/lib/
 
-COPY Pipfile* /
-RUN pipenv install --system --deploy
-COPY dist/carbon*.whl /
-RUN pip install carbon*.whl
+# Install Python dependencies
+RUN pip install --upgrade pip pipenv
+COPY . .
+RUN pipenv install
 
-ENTRYPOINT ["carbon"]
-CMD ["--help"]
+ENTRYPOINT ["pipenv", "run", "carbon"]

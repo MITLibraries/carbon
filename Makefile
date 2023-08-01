@@ -11,7 +11,7 @@ ECR_URL_DEV:=222053980223.dkr.ecr.us-east-1.amazonaws.com/carbon-dev
 
 SHELL=/bin/bash
 S3_BUCKET:=shared-files-$(shell aws sts get-caller-identity --query "Account" --output text)
-ORACLE_ZIP:=instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip
+ORACLE_ZIP:=instantclient-basiclite-linux.x64-21.9.0.0.0dbru.zip
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
 help: ## Print this message
@@ -20,6 +20,9 @@ help: ## Print this message
 
 install: ## Install python dependencies
 	pipenv install --dev
+
+dependencies: 
+	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
 vendor/$(ORACLE_ZIP):
 	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
