@@ -16,8 +16,11 @@ flake8 = "*"
 click = "*"
 lxml = "*"
 SQLAlchemy = "*"
-cx-oracle = "*"
+oracledb = "*"
 "boto3" = "*"
 
 [requires]
-python_version = "3.9"
+python_version = "3.11"
+
+[scripts]
+patronload = "python -c \"from carbon.cli import main; main()\""

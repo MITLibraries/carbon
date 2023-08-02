@@ -19,8 +19,7 @@ from carbon.db import engine, metadata, persons, orcids, dlcs, aa_articles
 @pytest.fixture(scope="session", autouse=True)
 def app_init():
     engine.configure("sqlite://")
-    metadata.bind = engine()
-    metadata.create_all()
+    metadata.create_all(bind=engine())
 
 
 @pytest.fixture(scope="session")
@@ -90,6 +89,7 @@ def load_data(records, aa_data):
             conn.execute(orcids.insert(), r["orcid"])
             conn.execute(dlcs.insert(), r["dlc"])
         conn.execute(aa_articles.insert(), aa_data)
+        conn.commit()
     yield
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
