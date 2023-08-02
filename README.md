@@ -22,7 +22,7 @@ From the project folder:
 
 1. Run `make dependencies` with appropriate AWS credentials.
 
-2. Run `make dist-dev`` to build the container.
+2. Run `make dist-dev` to build the container.
 
 3. Run `docker run carbon-dev:latest`.
 
@@ -82,3 +82,11 @@ Carbon will generate an XML feed that can be uploaded to Symplectic. The command
 ```bash
 (carbon)$ env CARBON_DB sqlite:///people.db carbon people
 ```
+
+## Optional ENV
+
+* `LOG_LEVEL` = The log level for the alma-patronload application. Defaults to INFO if not set.
+
+* `ORACLE_LIB_DIR` = The directory containing the Oracle Instant Client library.
+
+* `SENTRY_DSN` = If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
