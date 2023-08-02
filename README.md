@@ -2,50 +2,35 @@
 
 Carbon is a tool for generating a feed of people that can be loaded into Symplectic Elements. It is designed to be run as a container. This document contains general application information. Please refer to the [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon) for the deployment configuration.
 
-## Developing
+## Development
 
-Use pipenv to install and manage dependencies::
+* To install with dev dependencies: `make install`
+* To update dependencies: `make update`
+* To run unit tests: `make test`
+* To lint the repo: `make lint`
+* To run the app: `pipenv run carbon --help`
 
-```bash
-git clone git@github.com:MITLibraries/carbon.git
-cd carbon
-make install
-```
-
-Connecting to the data warehouse will require installing the `cx_Oracle` python package. The good news is that this is now being packaged as a wheel for most architectures, so no extra work is required to install it. If you don't need to actually connect to the data warehouse, you are done. Note that the test suite uses SQLite, so you can develop and test without connecting to the data warehouse.
+The Data Warehouse runs on a older version of Oracle that necessitates the thick mode of python-oracledb which requires the Oracle Instant Client Library (this app was developed with version 21.9.0.0.0.). The test suite uses SQLite, so you can develop and test without connecting to the Data Warehouse.
 
 If you do need to connect to the data warehouse, you have two options, one using Docker and one without.
 
-### Without Docker
-
-To connect without Docker you will need to install the `Oracle client library <https://www.oracle.com/technetwork/database/database-technologies/instant-client/overview/index.html>`_. It seems that now just installing the basic light package should be fine. In general, all you should need to do is extract the package and add the extracted directory to your `LD_LIBRARY_PATH` environment variable. If there is no `lbclntsh.so` (`libclntsh.dylib` for Mac) symlink in the extracted directory, you will need to create one. The process will look something like this (changing for paths/filenames as necessary)::
-
-```bash
-unzip instantclient-basiclite-linux.x64-18.3.0.0.0dbru.zip -d /usr/local/opt
-# Add the following line to your .bash_profile or whatever to make it permanent
-export LD_LIBRARY_PATH=/usr/local/opt/instantclient_18_3:$LD_LIBRARY_PATH
-# If the symlink doesn't already exist:
-ln -rs /usr/local/opt/instantclient_18_3/libclntsh.so.18.1 /usr/local/opt/instantclient_18_3/libclntsh.so
-```
-
-On Linux, you will also need to make sure you have libaio installed. You can probably just use your system's package manager to install this easily. The package may be called `libaio1`.
-
 ### With Docker
 
-Connecting with Docker, in theory, should be more straightforward. The idea would be to test your changes in a container. As long as you aren't modifying the project dependencies, building the container should be quick, so iterating shouldn't be terrible. You will of course need a working Docker installation, and you will also need to have the AWS CLI installed and configured. Your development process using this method would look like:
+Note: as of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
 
-1. Make your changes.
-2. Run `make-deps` from project root.
-3. Run `make dist-dev` from project root.
-4. Test your changes by running `docker run --rm carbon-dev <carbon args>`, with `<carbon args>` being whatever arguments you would normally use to run carbon.
+From the project folder:
 
-## Building
+1. Run `make dependencies` with appropriate AWS credentials.
 
-Always run `make deps` first to ensure you have the necessary vendor library. Running `make dist-dev` creates a new container that is tagged as `carbon-dev:latest`. It will also add tags for the ECR registry with both the `latest` and the git short hash. The first build will take some time, but subsequent builds should be fast.
+2. Run `make dist-dev`` to build the container.
 
-We are restricted from distributing the Oracle client library, so a copy is kept in a private S3 bucket for use when building the container image. If you are updating this, make sure you are using a Linux x86_64 version.
+3. Run `docker run carbon-dev:latest`.
 
-The `make deps` process downloads this file from S3 so you should have the AWS CLI installed and configured to authenticate using an account with appropriate access to the shared S3 bucket in Dev1.
+### Without Docker
+
+1. Download Oracle Instant Client (basiclite is sufficient) and set the ORACLE_LIB_DIR env variable.
+
+2. Run pipenv run patronload.
 
 ## Deploying
 
