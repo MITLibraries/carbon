@@ -22,6 +22,11 @@ def app_init():
     metadata.create_all(bind=engine())
 
 
+@pytest.fixture(autouse=True)
+def test_env():
+    os.environ = {"WORKSPACE": "test"}
+
+
 @pytest.fixture(scope="session")
 def records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
@@ -52,7 +57,9 @@ def _ftp_server():
     """
     s = socket.socket()
     s.bind(("", 0))
-    fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
+    fixtures = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "fixtures"
+    )
     with tempfile.TemporaryDirectory() as d:
         auth = DummyAuthorizer()
         auth.add_user("user", "pass", d, perm="elradfmwMT")
@@ -124,16 +131,17 @@ def xml_records(E):
         E.record(
             E.field("098754", name="[Proprietary_ID]"),
             E.field("THOR", name="[Username]"),
-            E.field(u"Þ H", name="[Initials]"),
+            E.field("Þ H", name="[Initials]"),
             E.field("Hammerson", name="[LastName]"),
-            E.field(u"Þorgerðr", name="[FirstName]"),
+            E.field("Þorgerðr", name="[FirstName]"),
             E.field("thor@example.com", name="[Email]"),
             E.field("MIT", {"name": "[AuthenticatingAuthority]"}),
             E.field("1", {"name": "[IsAcademic]"}),
             E.field("1", {"name": "[IsCurrent]"}),
             E.field("1", {"name": "[LoginAllowed]"}),
             E.field(
-                "Nuclear Science Non-faculty", {"name": "[PrimaryGroupDescriptor]"}
+                "Nuclear Science Non-faculty",
+                {"name": "[PrimaryGroupDescriptor]"},
             ),
             E.field("2015-01-01", {"name": "[ArriveDate]"}),
             E.field("2999-12-31", {"name": "[LeaveDate]"}),
@@ -141,7 +149,9 @@ def xml_records(E):
             E.field("COAC", {"name": "[Generic02]"}),
             E.field("ENGINEERING AREA", {"name": "[Generic03]"}),
             E.field("Nuclear Science", {"name": "[Generic04]"}),
-            E.field("Nuclear Science and Engineering", {"name": "[Generic05]"}),
+            E.field(
+                "Nuclear Science and Engineering", {"name": "[Generic05]"}
+            ),
         ),
     ]
 
@@ -170,7 +180,7 @@ def articles_data(aa_data):
                 "the Yawning Abyss of Chaos ☈."
             ),
             B.ARTICLE_YEAR("1999"),
-            B.AUTHORS(u"McRandallson, Randall M.|Lord, Dark|☭"),
+            B.AUTHORS("McRandallson, Randall M.|Lord, Dark|☭"),
             B.DOI("10.0000/1234LETTERS56"),
             B.ISSN_ELECTRONIC("0987654"),
             B.ISSN_PRINT("01234567"),
