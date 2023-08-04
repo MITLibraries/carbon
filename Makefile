@@ -38,8 +38,18 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-lint: ## run linters
+lint: black flake8 
+
+black: 
+	pipenv run black -l 90 --check --diff --color .
+
+flake8: 
 	pipenv run flake8 carbon
+
+lint-apply: black-apply
+
+black-apply: 
+	pipenv run black -l 90 .
 
 ## ---- Terraform-generated Developer Deploy Commands for Dev1 environment ---- ##
 

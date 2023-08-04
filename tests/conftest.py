@@ -57,9 +57,7 @@ def _ftp_server():
     """
     s = socket.socket()
     s.bind(("", 0))
-    fixtures = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "fixtures"
-    )
+    fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
     with tempfile.TemporaryDirectory() as d:
         auth = DummyAuthorizer()
         auth.add_user("user", "pass", d, perm="elradfmwMT")
@@ -149,9 +147,7 @@ def xml_records(E):
             E.field("COAC", {"name": "[Generic02]"}),
             E.field("ENGINEERING AREA", {"name": "[Generic03]"}),
             E.field("Nuclear Science", {"name": "[Generic04]"}),
-            E.field(
-                "Nuclear Science and Engineering", {"name": "[Generic05]"}
-            ),
+            E.field("Nuclear Science and Engineering", {"name": "[Generic05]"}),
         ),
     ]
 

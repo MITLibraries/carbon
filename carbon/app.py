@@ -188,9 +188,7 @@ def initialize_part(name):
 
     """
     name = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE)
-    return "".join(
-        [x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]
-    ).upper()
+    return "".join([x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]).upper()
 
 
 def group_name(dlc, sub_area):
@@ -314,9 +312,7 @@ class CarbonCopyFTPS(FTP_TLS):
 
 
 class FTPReader:
-    def __init__(
-        self, fp, user, passwd, path, host="localhost", port=21, ctx=None
-    ):
+    def __init__(self, fp, user, passwd, path, host="localhost", port=21, ctx=None):
         self.fp = fp
         self.user = user
         self.passwd = passwd
@@ -374,9 +370,7 @@ def _add_article(xf, article):
     add_child(record, "DOI", article["DOI"])
     add_child(record, "ISSN_ELECTRONIC", article["ISSN_ELECTRONIC"])
     add_child(record, "ISSN_PRINT", article["ISSN_PRINT"])
-    add_child(
-        record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"]
-    )
+    add_child(record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"])
     add_child(record, "JOURNAL_FIRST_PAGE", article["JOURNAL_FIRST_PAGE"])
     add_child(record, "JOURNAL_LAST_PAGE", article["JOURNAL_LAST_PAGE"])
     add_child(record, "JOURNAL_ISSUE", article["JOURNAL_ISSUE"])
@@ -413,9 +407,7 @@ def _add_person(xf, person):
     add_child(
         record,
         "field",
-        hire_date_string(
-            person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]
-        ),
+        hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
         name="[ArriveDate]",
     )
     add_child(
@@ -425,9 +417,7 @@ def _add_person(xf, person):
         name="[LeaveDate]",
     )
     add_child(record, "field", person["ORCID"], name="[Generic01]")
-    add_child(
-        record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]"
-    )
+    add_child(record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]")
     add_child(
         record,
         "field",
@@ -435,9 +425,7 @@ def _add_person(xf, person):
         name="[Generic03]",
     )
     add_child(record, "field", person["DLC_NAME"], name="[Generic04]")
-    add_child(
-        record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]"
-    )
+    add_child(record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]")
     xf.write(record)
 
 
@@ -480,12 +468,8 @@ def sns_log(f):
     execution of the click command in a try/except so that any exception
     can be logged to the SNS topic before being re-raised.
     """
-    msg_start = (
-        "[{}] Starting carbon run for the {} feed in the {} " "environment."
-    )
-    msg_success = (
-        "[{}] Finished carbon run for the {} feed in the {} " "environment."
-    )
+    msg_start = "[{}] Starting carbon run for the {} feed in the {} " "environment."
+    msg_success = "[{}] Finished carbon run for the {} feed in the {} " "environment."
     msg_fail = (
         "[{}] The following problem was encountered during the "
         "carbon run for the {} feed in the {} environment:\n\n"
@@ -502,9 +486,7 @@ def sns_log(f):
             client.publish(
                 TopicArn=sns_id,
                 Subject="Carbon run",
-                Message=msg_start.format(
-                    datetime.utcnow().isoformat(), feed, stage
-                ),
+                Message=msg_start.format(datetime.utcnow().isoformat(), feed, stage),
             )
             try:
                 res = ctx.invoke(f, *args, **kwargs)

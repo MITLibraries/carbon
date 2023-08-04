@@ -19,8 +19,7 @@ from carbon.db import engine
 @click.option(
     "--ftp",
     is_flag=True,
-    help="Send output to FTP server; do not "
-    "use this with the -o/--out option",
+    help="Send output to FTP server; do not " "use this with the -o/--out option",
 )
 @click.option(
     "--ftp-host",
@@ -38,9 +37,7 @@ from carbon.db import engine
 )
 @click.option("--ftp-user", envvar="FTP_USER", help="FTP username")
 @click.option("--ftp-pass", envvar="FTP_PASS", help="FTP password")
-@click.option(
-    "--ftp-path", envvar="FTP_PATH", help="Full path to file on FTP server"
-)
+@click.option("--ftp-path", envvar="FTP_PATH", help="Full path to file on FTP server")
 @click.option(
     "--secret-id",
     help="AWS Secrets id containing DB connection "
