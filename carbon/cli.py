@@ -6,6 +6,8 @@ import json
 import boto3
 import click
 
+from typing import IO
+
 from carbon.app import Config, FTPFeeder, Writer, sns_log
 from carbon.config import configure_sentry
 from carbon.db import engine
@@ -53,18 +55,18 @@ from carbon.db import engine
 )
 @sns_log
 def main(
-    feed_type,
-    db,
-    out,
-    ftp,
-    ftp_host,
-    ftp_port,
-    ftp_user,
-    ftp_pass,
-    ftp_path,
-    secret_id,
-    sns_topic,
-):
+    feed_type: str,
+    db: str,
+    out: IO,
+    ftp: bool,
+    ftp_host: str,
+    ftp_port: int,
+    ftp_user: str,
+    ftp_pass: str,
+    ftp_path: str,
+    secret_id: str,
+    sns_topic: str,
+) -> None:
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either

@@ -16,8 +16,8 @@ import threading
 import boto3
 import click
 
-from lxml import etree as ET
-from lxml.etree import _Element
+from click import Context
+from lxml import etree as ET  # nosec
 
 from sqlalchemy import func, select
 
@@ -302,11 +302,11 @@ class CarbonCopyFTPS(FTP_TLS):
 
     def ntransfercmd(
         self, cmd: str, rest: Optional[Union[str, int]] = None
-    ) -> tuple[socket, int]:  # type: ignore[override]
-        conn, size = FTP.ntransfercmd(self, cmd, rest)
-        if self._prot_p:
+    ) -> tuple[socket, int]:
+        conn, size = FTP.ntransfercmd(self, cmd, rest)  # nosec
+        if self._prot_p:  # type: ignore[attr-defined]
             conn = self.context.wrap_socket(
-                conn, server_hostname=self.host, session=self.sock.session
+                conn, server_hostname=self.host, session=self.sock.session  # type: ignore[union-attr] # noqa: E501
             )
         return conn, size
 
@@ -490,7 +490,7 @@ class FTPFeeder:
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
 
 
-def sns_log(f: Callable):
+def sns_log(f: Callable) -> Callable:
     """AWS SNS log decorator for wrapping a click command.
 
     This can be used as a decorator for a click command. It will wrap
@@ -506,7 +506,7 @@ def sns_log(f: Callable):
     )
 
     @click.pass_context
-    def wrapped(ctx, *args, **kwargs):
+    def wrapped(ctx: Context, *args: str, **kwargs: str) -> Callable:
         sns_id = ctx.params.get("sns_topic")
         if sns_id:
             client = boto3.client("sns")
