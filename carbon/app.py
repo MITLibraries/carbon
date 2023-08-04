@@ -4,7 +4,7 @@ from __future__ import absolute_import, annotations
 from contextlib import contextmanager, closing
 from datetime import datetime
 from functools import partial, update_wrapper
-from ftplib import FTP, FTP_TLS
+from ftplib import FTP, FTP_TLS  # nosec
 from ssl import SSLContext
 from socket import socket
 
@@ -221,8 +221,8 @@ ns = partial(_ns, SYMPLECTIC_NS)
 
 
 def add_child(
-    parent: _Element, element: str, text: Optional[str] = None, **kwargs: str
-) -> _Element:
+    parent: ET._Element, element: str, text: Optional[str] = None, **kwargs: str
+) -> ET._Element:
     """Add a subelement with text."""
     child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text

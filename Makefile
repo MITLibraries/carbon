@@ -38,11 +38,7 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-<<<<<<< HEAD
-lint: black ruff safety  #bandit # mypy
-=======
 lint: black bandit mypy ruff safety 
->>>>>>> 3ee96c5 (Apply linting with mypy)
 
 bandit:
 	pipenv run bandit -r carbon
