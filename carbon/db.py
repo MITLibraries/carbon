@@ -4,6 +4,7 @@ import os
 
 from sqlalchemy import (
     create_engine,
+    Engine,
     Table,
     Column,
     String,
@@ -42,7 +43,9 @@ dlcs = Table(
     "HR_ORG_UNIT",
     metadata,
     Column(
-        "HR_ORG_UNIT_ID", String, ForeignKey("HR_PERSON_EMPLOYEE_LIMITED.HR_ORG_UNIT_ID")
+        "HR_ORG_UNIT_ID",
+        String,
+        ForeignKey("HR_PERSON_EMPLOYEE_LIMITED.HR_ORG_UNIT_ID"),
     ),
     Column("ORG_HIER_SCHOOL_AREA_NAME", String),
     Column("DLC_NAME", String),
@@ -80,7 +83,7 @@ aa_articles = Table(
 )
 
 
-class Engine(object):
+class DatabaseEngine(object):
     """Database engine.
 
     This provides access to an SQLAlchemy database engine. Only one
@@ -91,12 +94,20 @@ class Engine(object):
 
     _engine = None
 
-    def __call__(self):
-        return self._engine
+    def __call__(self) -> Engine:
+        if self._engine:
+            return self._engine
+        else:
+            raise AttributeError(
+                (
+                    "No SQLAlchemy engine was found. The engine must be created "
+                    "by running 'engine.configure()' with a valid connection string."
+                )
+            )
 
-    def configure(self, conn):
+    def configure(self, conn: str) -> None:
         self._engine = self._engine or create_engine(conn)
 
 
-engine = Engine()
-"""Application database engine."""
+# create the database engine
+engine = DatabaseEngine()

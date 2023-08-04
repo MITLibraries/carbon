@@ -1,16 +1,24 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
+from __future__ import absolute_import, annotations
+
 from contextlib import contextmanager, closing
 from datetime import datetime
 from functools import partial, update_wrapper
 from ftplib import FTP, FTP_TLS
+from ssl import SSLContext
+from socket import socket
+
+from typing import Any, Callable, Generator, IO, Optional, Union
 import os
 import re
 import threading
 
 import boto3
 import click
+
 from lxml import etree as ET
+from lxml.etree import _Element
+
 from sqlalchemy import func, select
 
 from carbon.db import persons, orcids, dlcs, engine, aa_articles
@@ -100,7 +108,7 @@ ENV_VARS = (
 )
 
 
-def people():
+def people() -> Generator[dict[str, Any], Any, None]:
     """A person generator.
 
     Returns an iterator of person dictionaries.
@@ -142,7 +150,7 @@ def people():
             yield dict(zip(result.keys(), row))
 
 
-def articles():
+def articles() -> Generator[dict[str, Any], Any, None]:
     """An article generator.
 
     Returns an iterator over the AA_ARTICLE table.
@@ -160,7 +168,7 @@ def articles():
             yield dict(zip(result.keys(), row))
 
 
-def initials(*args):
+def initials(*args: str) -> str:
     """Turn `*args` into a space-separated string of initials.
 
     Each argument is processed through :func:`~initialize_part` and
@@ -169,7 +177,7 @@ def initials(*args):
     return " ".join([initialize_part(n) for n in args if n])
 
 
-def initialize_part(name):
+def initialize_part(name: str) -> str:
     """Turn a name part into uppercased initials.
 
     This function will do its best to parse the argument into one or
@@ -191,19 +199,19 @@ def initialize_part(name):
     return "".join([x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]).upper()
 
 
-def group_name(dlc, sub_area):
+def group_name(dlc: str, sub_area: str) -> str:
     qualifier = "Faculty" if sub_area in ("CFAT", "CFAN") else "Non-faculty"
     return "{} {}".format(dlc, qualifier)
 
 
-def hire_date_string(original_start_date, date_to_faculty):
+def hire_date_string(original_start_date: datetime, date_to_faculty: datetime) -> str:
     if date_to_faculty:
         return date_to_faculty.strftime("%Y-%m-%d")
     else:
         return original_start_date.strftime("%Y-%m-%d")
 
 
-def _ns(namespace, element):
+def _ns(namespace: str, element: str) -> ET.QName:
     return ET.QName(namespace, element)
 
 
@@ -212,7 +220,9 @@ NSMAP = {None: SYMPLECTIC_NS}
 ns = partial(_ns, SYMPLECTIC_NS)
 
 
-def add_child(parent, element, text, **kwargs):
+def add_child(
+    parent: _Element, element: str, text: Optional[str] = None, **kwargs: str
+) -> _Element:
     """Add a subelement with text."""
     child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text
@@ -226,10 +236,10 @@ class Writer:
     Elements.
     """
 
-    def __init__(self, out):
+    def __init__(self, out: IO):
         self.out = out
 
-    def write(self, feed_type):
+    def write(self, feed_type: str) -> None:
         """Write the specified feed type to the configured output."""
         if feed_type == "people":
             with person_feed(self.out) as f:
@@ -253,7 +263,7 @@ class PipeWriter(Writer):
     See :class:`carbon.app.FTPReader` for an example reader.
     """
 
-    def write(self, feed_type):
+    def write(self, feed_type: str) -> None:
         """Concurrently read/write from the configured inputs and outputs.
 
         This method will block until both the reader and writer are finished.
@@ -264,7 +274,7 @@ class PipeWriter(Writer):
         self.out.close()
         pipe.join()
 
-    def pipe(self, reader):
+    def pipe(self, reader: FTPReader) -> PipeWriter:
         """Connect the read end of the pipe.
 
         This should be called before :meth:`~carbon.app.PipeWriter.write`.
@@ -290,7 +300,9 @@ class CarbonCopyFTPS(FTP_TLS):
     still cleanly shutdown the connection.
     """
 
-    def ntransfercmd(self, cmd, rest=None):
+    def ntransfercmd(
+        self, cmd: str, rest: Optional[Union[str, int]] = None
+    ) -> tuple[socket, int]:  # type: ignore[override]
         conn, size = FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:
             conn = self.context.wrap_socket(
@@ -298,7 +310,9 @@ class CarbonCopyFTPS(FTP_TLS):
             )
         return conn, size
 
-    def storbinary(self, cmd, fp, blocksize=8192, callback=None, rest=None):
+    def storbinary(
+        self, cmd: str, fp: IO, blocksize: int = 8192, callback: Optional[Callable] = None, rest: Optional[str] = None  # type: ignore[override]
+    ) -> str:
         self.voidcmd("TYPE I")
         with self.transfercmd(cmd, rest) as conn:
             while 1:
@@ -312,7 +326,16 @@ class CarbonCopyFTPS(FTP_TLS):
 
 
 class FTPReader:
-    def __init__(self, fp, user, passwd, path, host="localhost", port=21, ctx=None):
+    def __init__(
+        self,
+        fp: IO,
+        user: str,
+        passwd: str,
+        path: str,
+        host: str = "localhost",
+        port: int = 21,
+        ctx: Optional[SSLContext] = None,
+    ):
         self.fp = fp
         self.user = user
         self.passwd = passwd
@@ -321,7 +344,7 @@ class FTPReader:
         self.port = port
         self.ctx = ctx
 
-    def __call__(self):
+    def __call__(self) -> None:
         """Transfer a file using FTP over TLS."""
         ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
         ftps.connect(self.host, self.port)
@@ -332,7 +355,7 @@ class FTPReader:
 
 
 @contextmanager
-def person_feed(out):
+def person_feed(out: IO) -> Generator:
     """Generate XML feed of people.
 
     This is a streaming XML generator for people. Output will be
@@ -352,7 +375,7 @@ def person_feed(out):
 
 
 @contextmanager
-def article_feed(out):
+def article_feed(out: IO) -> Generator:
     """Generate XML feed of articles."""
     with ET.xmlfile(out, encoding="UTF-8") as xf:
         xf.write_declaration()
@@ -360,7 +383,7 @@ def article_feed(out):
             yield partial(_add_article, xf)
 
 
-def _add_article(xf, article):
+def _add_article(xf: IO, article: dict[str, Any]) -> None:
     record = ET.Element("ARTICLE")
     add_child(record, "AA_MATCH_SCORE", str(article["AA_MATCH_SCORE"]))
     add_child(record, "ARTICLE_ID", article["ARTICLE_ID"])
@@ -381,7 +404,7 @@ def _add_article(xf, article):
     xf.write(record)
 
 
-def _add_person(xf, person):
+def _add_person(xf: IO, person: dict[str, Any]) -> None:
     record = ET.Element("record")
     add_child(record, "field", person["MIT_ID"], name="[Proprietary_ID]")
     add_child(record, "field", person["KRB_NAME_UPPERCASE"], name="[Username]")
@@ -418,12 +441,7 @@ def _add_person(xf, person):
     )
     add_child(record, "field", person["ORCID"], name="[Generic01]")
     add_child(record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]")
-    add_child(
-        record,
-        "field",
-        person["ORG_HIER_SCHOOL_AREA_NAME"],
-        name="[Generic03]",
-    )
+    add_child(record, "field", person["ORG_HIER_SCHOOL_AREA_NAME"], name="[Generic03]")
     add_child(record, "field", person["DLC_NAME"], name="[Generic04]")
     add_child(record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]")
     xf.write(record)
@@ -431,7 +449,7 @@ def _add_person(xf, person):
 
 class Config(dict):
     @classmethod
-    def from_env(cls):
+    def from_env(cls) -> Config:
         cfg = cls()
         for var in ENV_VARS:
             cfg[var] = os.environ.get(var)
@@ -439,13 +457,19 @@ class Config(dict):
 
 
 class FTPFeeder:
-    def __init__(self, event, context, config, ssl_ctx=None):
+    def __init__(
+        self,
+        event: dict[str, str],
+        context: Any,
+        config: dict,
+        ssl_ctx: Optional[SSLContext] = None,
+    ):
         self.event = event
         self.context = context
         self.config = config
         self.ssl_ctx = ssl_ctx
 
-    def run(self):
+    def run(self) -> None:
         r, w = os.pipe()
         feed_type = self.event["feed_type"]
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
@@ -461,7 +485,7 @@ class FTPFeeder:
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
 
 
-def sns_log(f):
+def sns_log(f: Callable):
     """AWS SNS log decorator for wrapping a click command.
 
     This can be used as a decorator for a click command. It will wrap

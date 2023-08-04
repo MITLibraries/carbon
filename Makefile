@@ -38,13 +38,17 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-lint: black flake8 
+lint: mypy  # black flake8 
 
 black: 
 	pipenv run black -l 90 --check --diff --color .
 
 flake8: 
 	pipenv run flake8 carbon
+
+mypy: 
+	pipenv run mypy --install-types --non-interactive
+	pipenv run mypy carbon
 
 lint-apply: black-apply
 
