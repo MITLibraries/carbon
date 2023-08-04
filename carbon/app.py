@@ -311,7 +311,12 @@ class CarbonCopyFTPS(FTP_TLS):
         return conn, size
 
     def storbinary(
-        self, cmd: str, fp: IO, blocksize: int = 8192, callback: Optional[Callable] = None, rest: Optional[str] = None  # type: ignore[override]
+        self,
+        cmd: str,
+        fp: IO,  # type: ignore[override]
+        blocksize: int = 8192,
+        callback: Optional[Callable] = None,
+        rest: Optional[str] = None,  # type: ignore[override]
     ) -> str:
         self.voidcmd("TYPE I")
         with self.transfercmd(cmd, rest) as conn:

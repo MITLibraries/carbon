@@ -38,18 +38,26 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-lint: mypy  # black flake8 
+lint: black ruff safety  #bandit # mypy
+
+bandit:
+	pipenv run bandit -r carbon
 
 black: 
 	pipenv run black -l 90 --check --diff --color .
-
-flake8: 
-	pipenv run flake8 carbon
 
 mypy: 
 	pipenv run mypy --install-types --non-interactive
 	pipenv run mypy carbon
 
+ruff: 
+	pipenv run ruff check .
+
+safety:
+	pipenv check
+	pipenv verify
+
+# apply changes to resolve any linting errors
 lint-apply: black-apply
 
 black-apply: 

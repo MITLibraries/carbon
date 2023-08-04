@@ -14,7 +14,7 @@ try:
         ["git", "describe", "--always"], stdout=subprocess.PIPE, encoding="utf-8"
     )
     version = output.stdout.strip()
-except subprocess.CalledProcessError as e:
+except subprocess.CalledProcessError:
     version = "unknown"
 
 setup(
