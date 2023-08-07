@@ -22,8 +22,23 @@ def _app_init():
 
 
 @pytest.fixture(autouse=True)
-def _test_env():
-    os.environ["WORKSPACE"] = "test"
+def test_env(ftp_server):
+    os.environ = {
+        "FEED_TYPE": "test_feed_type",
+        "LOG_LEVEL": "INFO",
+        "SENTRY_DSN": "test_sentry_dsn",
+        "SNS_TOPIC": "test_sns_topic",
+        "SYMPLECTIC_FTP_PATH": "test_symplectic_ftp_path",
+        "WORKSPACE": "test",
+        "DATAWAREHOUSE_CLOUDCONNECTOR_JSON": '{"CONNECTION_STRING": "sqlite://"}',
+        "SYMPLECTIC_FTP_JSON": (
+            '{"SYMPLECTIC_FTP_HOST": "test_symplectic_host", '
+            '"SYMPLECTIC_FTP_USER": "test_user", '
+            '"SYMPLECTIC_FTP_PASS": "test_pass"}'
+        ),
+    }
+
+    yield
 
 
 @pytest.fixture(scope="session")

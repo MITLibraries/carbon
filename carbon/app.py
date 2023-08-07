@@ -455,15 +455,6 @@ def _add_person(xf: IO, person: dict[str, Any]) -> None:
     xf.write(record)
 
 
-class Config(dict):
-    @classmethod
-    def from_env(cls) -> Config:
-        cfg = cls()
-        for var in ENV_VARS:
-            cfg[var] = os.environ.get(var)
-        return cfg
-
-
 class FTPFeeder:
     def __init__(
         self,
@@ -481,11 +472,11 @@ class FTPFeeder:
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
             ftp_rdr = FTPReader(
                 fp_r,
-                self.config["FTP_USER"],
-                self.config["FTP_PASS"],
-                self.config["FTP_PATH"],
-                self.config["FTP_HOST"],
-                int(self.config["FTP_PORT"]),
+                self.config["SYMPLECTIC_FTP_USER"],
+                self.config["SYMPLECTIC_FTP_PASS"],
+                self.config["SYMPLECTIC_FTP_PATH"],
+                self.config["SYMPLECTIC_FTP_HOST"],
+                int(self.config["SYMPLECTIC_FTP_PORT"]),
                 self.ssl_ctx,
             )
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
