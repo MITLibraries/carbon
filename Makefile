@@ -47,7 +47,6 @@ black:
 	pipenv run black -l 90 --check --diff --color .
 
 mypy: 
-	pipenv run mypy --install-types --non-interactive
 	pipenv run mypy carbon
 
 ruff: 
