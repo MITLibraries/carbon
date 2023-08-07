@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import sentry_sdk
@@ -13,6 +14,29 @@ ENV_VARS = [
     "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
     "SYMPLECTIC_FTP_JSON",
 ]
+
+
+def configure_logger(logger: logging.Logger, log_level_string: str) -> str:
+    if log_level_string.upper() not in logging.getLevelNamesMapping():
+        raise ValueError(f"'{log_level_string}' is not a valid Python logging level")
+    log_level = logging.getLevelName(log_level_string.upper())
+    if log_level < 20:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s %(name)s.%(funcName)s() line %(lineno)d: "
+            "%(message)s"
+        )
+        logger.setLevel(log_level)
+        for handler in logging.root.handlers:
+            handler.addFilter(logging.Filter("patronload"))
+    else:
+        logging.basicConfig(
+            format="%(asctime)s %(levelname)s %(name)s.%(funcName)s(): %(message)s"
+        )
+        logger.setLevel(log_level)
+    return (
+        f"Logger '{logger.name}' configured with level="
+        f"{logging.getLevelName(logger.getEffectiveLevel())}"
+    )
 
 
 def configure_sentry() -> str:

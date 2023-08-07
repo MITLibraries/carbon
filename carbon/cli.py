@@ -1,12 +1,15 @@
 import json
+import logging
 import os
 from typing import IO
 
 import click
 
 from carbon.app import FTPFeeder, Writer, sns_log
-from carbon.config import configure_logger, configure_sentry, load_config_values
+from carbon.config import configure_logger, load_config_values  # configure_sentry
 from carbon.db import engine
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
@@ -106,7 +109,10 @@ def main(
         }
     )
 
+    root_logger = logging.getLogger()
+    logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
     # configure_sentry()
+    logger.info("Carbon config settings loaded for environment: %s")
 
     engine.configure(config_values["CONNECTION_STRING"])
     if ftp:
