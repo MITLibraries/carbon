@@ -66,6 +66,7 @@ def load_config_values() -> dict:
             "SYMPLECTIC_FTP_JSON",
         ]:
             config_values.update(json.loads(os.environ[config_variable]))
-        config_values[config_variable] = os.environ[config_variable]
+        else:
+            config_values[config_variable] = os.environ[config_variable]
 
     return config_values

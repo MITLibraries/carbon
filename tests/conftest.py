@@ -22,23 +22,20 @@ def _app_init():
 
 
 @pytest.fixture(autouse=True)
-def test_env(ftp_server):
-    os.environ = {
-        "FEED_TYPE": "test_feed_type",
-        "LOG_LEVEL": "INFO",
-        "SENTRY_DSN": "test_sentry_dsn",
-        "SNS_TOPIC": "test_sns_topic",
-        "SYMPLECTIC_FTP_PATH": "test_symplectic_ftp_path",
-        "WORKSPACE": "test",
-        "DATAWAREHOUSE_CLOUDCONNECTOR_JSON": '{"CONNECTION_STRING": "sqlite://"}',
-        "SYMPLECTIC_FTP_JSON": (
-            '{"SYMPLECTIC_FTP_HOST": "test_symplectic_host", '
-            '"SYMPLECTIC_FTP_USER": "test_user", '
-            '"SYMPLECTIC_FTP_PASS": "test_pass"}'
-        ),
-    }
-
-    yield
+def _test_env():
+    os.environ["FEED_TYPE"] = "test_feed_type"
+    os.environ["LOG_LEVEL"] = "INFO"
+    os.environ["SENTRY_DSN"] = "test_sentry_dsn"
+    os.environ["SNS_TOPIC"] = "test_sns_topic"
+    os.environ["WORKSPACE"] = "test"
+    os.environ["DATAWAREHOUSE_CLOUDCONNECTOR_JSON"] = '{"CONNECTION_STRING": "sqlite://"}'
+    os.environ["SYMPLECTIC_FTP_PATH"] = "/people.xml"
+    os.environ["SYMPLECTIC_FTP_JSON"] = (
+        '{"SYMPLECTIC_FTP_HOST": "localhost", '
+        '"SYMPLECTIC_FTP_PORT": "test_symplectic_ftp_port",'
+        '"SYMPLECTIC_FTP_USER": "user", '
+        '"SYMPLECTIC_FTP_PASS": "pass"}'
+    )
 
 
 @pytest.fixture(scope="session")
@@ -165,7 +162,7 @@ def xml_records(e):
 
 
 @pytest.fixture
-def xml_data(e, xml_records):
+def people_data(e, xml_records):
     return e.records(*xml_records)
 
 
