@@ -38,18 +38,16 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-lint: black bandit mypy ruff safety 
+# linting commands
+lint: black mypy ruff safety 
 
-bandit:
-	pipenv run bandit -r carbon
+black:
+	pipenv run black --check --diff .
 
-black: 
-	pipenv run black -l 90 --check --diff --color .
-
-mypy: 
+mypy:
 	pipenv run mypy carbon
 
-ruff: 
+ruff:
 	pipenv run ruff check .
 
 safety:
@@ -57,10 +55,13 @@ safety:
 	pipenv verify
 
 # apply changes to resolve any linting errors
-lint-apply: black-apply
+lint-apply: black-apply ruff-apply
 
 black-apply: 
-	pipenv run black -l 90 .
+	pipenv run black .
+
+ruff-apply: 
+	pipenv run ruff check --fix .
 
 ## ---- Terraform-generated Developer Deploy Commands for Dev1 environment ---- ##
 

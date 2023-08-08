@@ -4,10 +4,8 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
-bandit = "*"
 black = "*"
 boto3-stubs = {extras = ["essential"], version = "*"}
-flake8 = "*"
 coveralls = "*"
 lxml-stubs = "*"
 mypy = "*"
