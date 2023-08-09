@@ -1,17 +1,16 @@
-# -*- coding: utf-8 -*-
-"""
-Carbon, a people loader.
-"""
-
-from setuptools import find_packages, setup
+"""Carbon: a people loader."""
 import subprocess
 
+from setuptools import find_packages, setup
+
 with open("LICENSE") as f:
-    license = f.read()
+    mit_license = f.read()
 
 try:
     output = subprocess.run(
-        ["git", "describe", "--always"], stdout=subprocess.PIPE, encoding="utf-8"
+        ["git", "describe", "--always"],  # noqa: S603, S607
+        stdout=subprocess.PIPE,
+        encoding="utf-8",
     )
     version = output.stdout.strip()
 except subprocess.CalledProcessError:
@@ -23,7 +22,7 @@ setup(
     description="Load people into Elements",
     long_description=__doc__,
     url="https://github.com/MITLibraries/carbon",
-    license=license,
+    license=mit_license,
     author="Mike Graves",
     author_email="mgraves@mit.edu",
     packages=find_packages(exclude=["tests"]),

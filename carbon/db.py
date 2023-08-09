@@ -1,21 +1,18 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
 import os
 
 from sqlalchemy import (
-    create_engine,
-    Engine,
-    Table,
     Column,
-    String,
     Date,
-    MetaData,
+    Engine,
     ForeignKey,
+    MetaData,
     Numeric,
+    String,
+    Table,
     Unicode,
     UnicodeText,
+    create_engine,
 )
-
 
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.UTF8"
 
@@ -83,7 +80,7 @@ aa_articles = Table(
 )
 
 
-class DatabaseEngine(object):
+class DatabaseEngine:
     """Database engine.
 
     This provides access to an SQLAlchemy database engine. Only one
@@ -97,13 +94,12 @@ class DatabaseEngine(object):
     def __call__(self) -> Engine:
         if self._engine:
             return self._engine
-        else:
-            raise AttributeError(
-                (
-                    "No SQLAlchemy engine was found. The engine must be created "
-                    "by running 'engine.configure()' with a valid connection string."
-                )
-            )
+
+        nonconfigured_engine_error_message = (
+            "No SQLAlchemy engine was found. The engine must be created "
+            "by running 'engine.configure()' with a valid connection string."
+        )
+        raise AttributeError(nonconfigured_engine_error_message)
 
     def configure(self, conn: str) -> None:
         self._engine = self._engine or create_engine(conn)

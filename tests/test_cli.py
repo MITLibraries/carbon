@@ -1,16 +1,12 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import os
 
+import pytest
 from click.testing import CliRunner
 from lxml import etree as ET
-import pytest
 
 from carbon.cli import main
 
-
-pytestmark = pytest.mark.usefixtures("load_data")
+pytestmark = pytest.mark.usefixtures("_load_data")
 
 
 @pytest.fixture
@@ -34,8 +30,8 @@ def test_articles_returns_articles(runner, articles_data):
     )
 
 
-def test_file_is_ftped(runner, xml_data, ftp_server):
-    s, d = ftp_server
+def test_file_is_ftped(runner, ftp_server_wrapper):
+    s, d = ftp_server_wrapper
     res = runner.invoke(
         main,
         [

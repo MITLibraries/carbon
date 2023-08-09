@@ -1,27 +1,27 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, annotations
+from __future__ import annotations
 
-from contextlib import contextmanager, closing
-from datetime import datetime
-from functools import partial, update_wrapper
-from ftplib import FTP, FTP_TLS  # nosec
-from ssl import SSLContext
-from socket import socket
-
-from typing import Any, Callable, Generator, IO, Optional, Union
 import os
 import re
 import threading
+from contextlib import closing, contextmanager
+from datetime import UTC, datetime
+from ftplib import FTP, FTP_TLS  # nosec
+from functools import partial, update_wrapper
+from typing import IO, TYPE_CHECKING, Any
 
 import boto3
 import click
-
 from click import Context
 from lxml import etree as ET  # nosec
-
 from sqlalchemy import func, select
 
-from carbon.db import persons, orcids, dlcs, engine, aa_articles
+from carbon.db import aa_articles, dlcs, engine, orcids, persons
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
+    from socket import socket
+    from ssl import SSLContext
+
 
 AREAS = (
     "ARCHITECTURE & PLANNING AREA",
@@ -139,7 +139,10 @@ def people() -> Generator[dict[str, Any], Any, None]:
         .where(persons.c.KRB_NAME_UPPERCASE != "UNKNOWN")
         .where(persons.c.MIT_ID.is_not(None))
         .where(persons.c.ORIGINAL_HIRE_DATE.is_not(None))
-        .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1))
+        .where(
+            persons.c.APPOINTMENT_END_DATE  # noqa: SIM300
+            >= datetime(2009, 1, 1)  # noqa: DTZ001
+        )
         .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS))
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES))
         .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
@@ -147,7 +150,7 @@ def people() -> Generator[dict[str, Any], Any, None]:
     with closing(engine().connect()) as conn:
         result = conn.execute(sql)
         for row in result:
-            yield dict(zip(result.keys(), row))
+            yield dict(zip(result.keys(), row, strict=True))
 
 
 def articles() -> Generator[dict[str, Any], Any, None]:
@@ -165,7 +168,7 @@ def articles() -> Generator[dict[str, Any], Any, None]:
     with closing(engine().connect()) as conn:
         result = conn.execute(sql)
         for row in result:
-            yield dict(zip(result.keys(), row))
+            yield dict(zip(result.keys(), row, strict=True))
 
 
 def initials(*args: str) -> str:
@@ -194,21 +197,20 @@ def initialize_part(name: str) -> str:
         assert initialize_part('Foo-bar') == 'F-B'
         assert initialize_part(u'влад') == u'В'
 
-    """
+    """  # noqa: RUF002
     name = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE)
     return "".join([x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]).upper()
 
 
 def group_name(dlc: str, sub_area: str) -> str:
     qualifier = "Faculty" if sub_area in ("CFAT", "CFAN") else "Non-faculty"
-    return "{} {}".format(dlc, qualifier)
+    return f"{dlc} {qualifier}"
 
 
 def hire_date_string(original_start_date: datetime, date_to_faculty: datetime) -> str:
     if date_to_faculty:
         return date_to_faculty.strftime("%Y-%m-%d")
-    else:
-        return original_start_date.strftime("%Y-%m-%d")
+    return original_start_date.strftime("%Y-%m-%d")
 
 
 def _ns(namespace: str, element: str) -> ET.QName:
@@ -221,8 +223,11 @@ ns = partial(_ns, SYMPLECTIC_NS)
 
 
 def add_child(
-    parent: ET._Element, element: str, text: Optional[str] = None, **kwargs: str
-) -> ET._Element:
+    parent: ET._Element,  # noqa: SLF001
+    element: str,
+    text: str | None = None,
+    **kwargs: str,
+) -> ET._Element:  # noqa: SLF001
     """Add a subelement with text."""
     child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text
@@ -301,9 +306,9 @@ class CarbonCopyFTPS(FTP_TLS):
     """
 
     def ntransfercmd(
-        self, cmd: str, rest: Optional[Union[str, int]] = None
+        self, cmd: str, rest: str | int | None = None
     ) -> tuple[socket, int]:
-        conn, size = FTP.ntransfercmd(self, cmd, rest)  # nosec
+        conn, size = FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:  # type: ignore[attr-defined]
             conn = self.context.wrap_socket(
                 conn, server_hostname=self.host, session=self.sock.session  # type: ignore[union-attr] # noqa: E501
@@ -315,8 +320,8 @@ class CarbonCopyFTPS(FTP_TLS):
         cmd: str,
         fp: IO,  # type: ignore[override]
         blocksize: int = 8192,
-        callback: Optional[Callable] = None,
-        rest: Optional[str] = None,  # type: ignore[override]
+        callback: Callable | None = None,
+        rest: str | None = None,  # type: ignore[override]
     ) -> str:
         self.voidcmd("TYPE I")
         with self.transfercmd(cmd, rest) as conn:
@@ -339,7 +344,7 @@ class FTPReader:
         path: str,
         host: str = "localhost",
         port: int = 21,
-        ctx: Optional[SSLContext] = None,
+        ctx: SSLContext | None = None,
     ):
         self.fp = fp
         self.user = user
@@ -465,12 +470,10 @@ class FTPFeeder:
     def __init__(
         self,
         event: dict[str, str],
-        context: Any,
         config: dict,
-        ssl_ctx: Optional[SSLContext] = None,
+        ssl_ctx: SSLContext | None = None,
     ):
         self.event = event
-        self.context = context
         self.config = config
         self.ssl_ctx = ssl_ctx
 
@@ -497,8 +500,8 @@ def sns_log(f: Callable) -> Callable:
     execution of the click command in a try/except so that any exception
     can be logged to the SNS topic before being re-raised.
     """
-    msg_start = "[{}] Starting carbon run for the {} feed in the {} " "environment."
-    msg_success = "[{}] Finished carbon run for the {} feed in the {} " "environment."
+    msg_start = "[{}] Starting carbon run for the {} feed in the {} environment."
+    msg_success = "[{}] Finished carbon run for the {} feed in the {} environment."
     msg_fail = (
         "[{}] The following problem was encountered during the "
         "carbon run for the {} feed in the {} environment:\n\n"
@@ -515,7 +518,7 @@ def sns_log(f: Callable) -> Callable:
             client.publish(
                 TopicArn=sns_id,
                 Subject="Carbon run",
-                Message=msg_start.format(datetime.utcnow().isoformat(), feed, stage),
+                Message=msg_start.format(datetime.now(tz=UTC).isoformat(), feed, stage),
             )
             try:
                 res = ctx.invoke(f, *args, **kwargs)
@@ -524,7 +527,7 @@ def sns_log(f: Callable) -> Callable:
                     TopicArn=sns_id,
                     Subject="Carbon run",
                     Message=msg_fail.format(
-                        datetime.utcnow().isoformat(), feed, stage, e
+                        datetime.now(tz=UTC).isoformat(), feed, stage, e
                     ),
                 )
                 raise
@@ -533,7 +536,7 @@ def sns_log(f: Callable) -> Callable:
                     TopicArn=sns_id,
                     Subject="Carbon run",
                     Message=msg_success.format(
-                        datetime.utcnow().isoformat(), feed, stage
+                        datetime.now(tz=UTC).isoformat(), feed, stage
                     ),
                 )
         else:

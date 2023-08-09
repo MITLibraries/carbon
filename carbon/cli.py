@@ -1,12 +1,8 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import json
+from typing import IO
 
 import boto3
 import click
-
-from typing import IO
 
 from carbon.app import Config, FTPFeeder, Writer, sns_log
 from carbon.config import configure_sentry
@@ -21,7 +17,7 @@ from carbon.db import engine
 @click.option(
     "--ftp",
     is_flag=True,
-    help="Send output to FTP server; do not " "use this with the -o/--out option",
+    help="Send output to FTP server; do not use this with the -o/--out option",
 )
 @click.option(
     "--ftp-host",
@@ -58,14 +54,15 @@ def main(
     feed_type: str,
     db: str,
     out: IO,
-    ftp: bool,
     ftp_host: str,
     ftp_port: int,
     ftp_user: str,
     ftp_pass: str,
     ftp_path: str,
     secret_id: str,
-    sns_topic: str,
+    sns_topic: str,  # noqa: ARG001
+    *,
+    ftp: bool,
 ) -> None:
     """Generate feeds for Symplectic Elements.
 
@@ -104,8 +101,8 @@ def main(
 
     engine.configure(cfg["CARBON_DB"])
     if ftp:
-        click.echo("Starting carbon run for {}".format(feed_type))
-        FTPFeeder({"feed_type": feed_type}, None, cfg).run()
-        click.echo("Finished carbon run for {}".format(feed_type))
+        click.echo(f"Starting carbon run for {feed_type}")
+        FTPFeeder({"feed_type": feed_type}, cfg).run()
+        click.echo(f"Finished carbon run for {feed_type}")
     else:
         Writer(out=out).write(feed_type)

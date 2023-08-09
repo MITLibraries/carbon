@@ -1,28 +1,25 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from io import BytesIO
 import os
+from io import BytesIO
 
-from lxml import etree as ET
 import pytest
+from lxml import etree as ET
 
 from carbon.app import (
-    person_feed,
-    ns,
     NSMAP,
-    add_child,
-    initials,
-    article_feed,
-    group_name,
-    Writer,
-    PipeWriter,
     FTPReader,
-    people,
+    PipeWriter,
+    Writer,
+    add_child,
+    article_feed,
     articles,
+    group_name,
+    initials,
+    ns,
+    people,
+    person_feed,
 )
 
-
-pytestmark = pytest.mark.usefixtures("load_data")
+pytestmark = pytest.mark.usefixtures("_load_data")
 
 
 def test_people_generates_people():
@@ -71,18 +68,18 @@ def test_initials_returns_first_and_middle():
     assert initials("Foo", "") == "F"
     assert initials("Foo", None) == "F"
     assert initials("Gull-Þóris") == "G-Þ"
-    assert initials("владимир", "ильич", "ленин") == "В И Л"
+    assert initials("владимир", "ильич", "ленин") == "В И Л"  # noqa: RUF001
     assert initials("F. M.", "Laxdæla") == "F M L"
 
 
-def test_add_child_adds_child_element(E):
-    xml = E.records(E.record("foobar", {"baz": "bazbar"}))
-    e = ET.Element(ns("records"), nsmap=NSMAP)
-    add_child(e, "record", "foobar", baz="bazbar")
-    assert ET.tostring(e) == ET.tostring(xml)
+def test_add_child_adds_child_element(e):
+    xml = e.records(e.record("foobar", {"baz": "bazbar"}))
+    element = ET.Element(ns("records"), nsmap=NSMAP)
+    add_child(element, "record", "foobar", baz="bazbar")
+    assert ET.tostring(element) == ET.tostring(xml)
 
 
-def test_writer_writes_person_feed(E):
+def test_writer_writes_person_feed():
     b = BytesIO()
     w = Writer(b)
     w.write("people")
@@ -94,7 +91,7 @@ def test_writer_writes_person_feed(E):
     assert xp[1].text == "Þorgerðr"
 
 
-def test_pipewriter_writes_person_feed(E, reader):
+def test_pipewriter_writes_person_feed(reader):
     r, w = os.pipe()
     with open(r, "rb") as fr, open(w, "wb") as fw:
         wtr = PipeWriter(fw)
@@ -108,8 +105,8 @@ def test_pipewriter_writes_person_feed(E, reader):
     assert xp[1].text == "Þorgerðr"
 
 
-def test_ftpreader_sends_file(ftp_server):
-    s, d = ftp_server
+def test_ftpreader_sends_file(ftp_server_wrapper):
+    s, d = ftp_server_wrapper
     b = BytesIO(b"Storin' some bits in the FTPz")
     ftp = FTPReader(b, "user", "pass", "/warez", port=s[1])
     ftp()
@@ -125,9 +122,9 @@ def test_person_feed_uses_namespace():
     assert root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
 
 
-def test_person_feed_adds_person(records, xml_records, E):
+def test_person_feed_adds_person(records, xml_records, e):
     b = BytesIO()
-    xml = E.records(xml_records[0])
+    xml = e.records(xml_records[0])
     r = records[0]["person"].copy()
     r.update(records[0]["orcid"])
     r.update(records[0]["dlc"])
@@ -141,9 +138,9 @@ def test_person_feed_adds_person(records, xml_records, E):
     assert xp[0].text == "Foobar"
 
 
-def test_person_feed_uses_utf8_encoding(records, xml_records, E):
+def test_person_feed_uses_utf8_encoding(records, xml_records, e):
     b = BytesIO()
-    xml = E.records(xml_records[1])
+    xml = e.records(xml_records[1])
     r = records[1]["person"].copy()
     r.update(records[1]["orcid"])
     r.update(records[1]["dlc"])
