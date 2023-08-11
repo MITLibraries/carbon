@@ -305,9 +305,7 @@ class CarbonCopyFTPS(FTP_TLS):
     still cleanly shutdown the connection.
     """
 
-    def ntransfercmd(
-        self, cmd: str, rest: str | int | None = None
-    ) -> tuple[socket, int]:
+    def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
         conn, size = FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:  # type: ignore[attr-defined]
             conn = self.context.wrap_socket(

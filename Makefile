@@ -18,6 +18,7 @@ DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
 install: # install python dependencies
 	pipenv install --dev
+	pipenv run pre-commit install
 
 update: install # update all python dependencies
 	pipenv clean
@@ -45,7 +46,7 @@ black:
 	pipenv run black --check --diff .
 
 mypy:
-	pipenv run mypy carbon
+	pipenv run mypy .
 
 ruff:
 	pipenv run ruff check .

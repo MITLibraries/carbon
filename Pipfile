@@ -9,12 +9,14 @@ boto3-stubs = {extras = ["essential"], version = "*"}
 coveralls = "*"
 lxml-stubs = "*"
 mypy = "*"
+pre-commit = "*"
 pytest = "*"
 pytest-cov = "*"
 PyYAML = "*"
 pyftpdlib = "*"
 pyopenssl = "*"
 ruff = "*"
+types-setuptools = "*"
 
 
 [packages]
