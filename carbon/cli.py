@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -44,7 +43,7 @@ def main(sns_topic: str | None = None) -> None:  # noqa: ARG001
     config_values = load_config_values()
     root_logger = logging.getLogger()
     logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
-    # configure_sentry()
+    # configure_sentry() # noqa: ERA001
     logger.info("Carbon config settings loaded for environment: %s")
 
     engine.configure(config_values["CONNECTION_STRING"])
