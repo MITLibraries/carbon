@@ -1,30 +1,29 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from contextlib import closing
 import os
 import socket
 import tempfile
 import threading
+from contextlib import closing
 
-from lxml.builder import ElementMaker, E as B
-from pyftpdlib.authorizers import DummyAuthorizer
-from pyftpdlib.servers import FTPServer
-from pyftpdlib.handlers import TLS_FTPHandler
 import pytest
 import yaml
+from lxml.builder import E as B
+from lxml.builder import ElementMaker
+from pyftpdlib.authorizers import DummyAuthorizer
+from pyftpdlib.handlers import TLS_FTPHandler
+from pyftpdlib.servers import FTPServer
 
-from carbon.db import engine, metadata, persons, orcids, dlcs, aa_articles
+from carbon.db import aa_articles, dlcs, engine, metadata, orcids, persons
 
 
 @pytest.fixture(scope="session", autouse=True)
-def app_init():
+def _app_init():
     engine.configure("sqlite://")
     metadata.create_all(bind=engine())
 
 
 @pytest.fixture(autouse=True)
-def test_env():
-    os.environ = {"WORKSPACE": "test"}
+def _test_env():
+    os.environ["WORKSPACE"] = "test"
 
 
 @pytest.fixture(scope="session")
@@ -32,8 +31,7 @@ def records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data = os.path.join(current_dir, "fixtures/data.yml")
     with open(data) as fp:
-        r = list(yaml.safe_load_all(fp))
-    return r
+        return list(yaml.safe_load_all(fp))
 
 
 @pytest.fixture(scope="session")
@@ -41,12 +39,11 @@ def aa_data():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data = os.path.join(current_dir, "fixtures/articles.yml")
     with open(data) as fp:
-        r = list(yaml.safe_load_all(fp))
-    return r
+        return list(yaml.safe_load_all(fp))
 
 
 @pytest.fixture(scope="session")
-def _ftp_server():
+def ftp_server():
     """Starts an FTPS server with an empty temp dir.
 
     This fixture returns a tuple with the socketname and the path to the
@@ -57,9 +54,7 @@ def _ftp_server():
     """
     s = socket.socket()
     s.bind(("", 0))
-    fixtures = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "fixtures"
-    )
+    fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
     with tempfile.TemporaryDirectory() as d:
         auth = DummyAuthorizer()
         auth.add_user("user", "pass", d, perm="elradfmwMT")
@@ -74,18 +69,18 @@ def _ftp_server():
 
 
 @pytest.fixture
-def ftp_server(_ftp_server):
+def ftp_server_wrapper(ftp_server):
     """Wrapper around ``_ftp_server`` to clean directory before each test."""
-    d = _ftp_server[1]
+    d = ftp_server[1]
     for f in os.listdir(d):
         fpath = os.path.join(d, f)
         if os.path.isfile(fpath):
             os.unlink(fpath)
-    return _ftp_server
+    return ftp_server
 
 
 @pytest.fixture
-def load_data(records, aa_data):
+def _load_data(records, aa_data):
     with closing(engine().connect()) as conn:
         conn.execute(persons.delete())
         conn.execute(orcids.delete())
@@ -106,63 +101,61 @@ def load_data(records, aa_data):
 
 
 @pytest.fixture
-def xml_records(E):
+def xml_records(e):
     return [
-        E.record(
-            E.field("123456", {"name": "[Proprietary_ID]"}),
-            E.field("FOOBAR", {"name": "[Username]"}),
-            E.field("F B", {"name": "[Initials]"}),
-            E.field("Gaz", {"name": "[LastName]"}),
-            E.field("Foobar", {"name": "[FirstName]"}),
-            E.field("foobar@example.com", {"name": "[Email]"}),
-            E.field("MIT", {"name": "[AuthenticatingAuthority]"}),
-            E.field("1", {"name": "[IsAcademic]"}),
-            E.field("1", {"name": "[IsCurrent]"}),
-            E.field("1", {"name": "[LoginAllowed]"}),
-            E.field("Chemistry Faculty", {"name": "[PrimaryGroupDescriptor]"}),
-            E.field("2001-01-01", {"name": "[ArriveDate]"}),
-            E.field("2010-01-01", {"name": "[LeaveDate]"}),
-            E.field("http://example.com/1", {"name": "[Generic01]"}),
-            E.field("CFAT", {"name": "[Generic02]"}),
-            E.field("SCIENCE AREA", {"name": "[Generic03]"}),
-            E.field("Chemistry", {"name": "[Generic04]"}),
-            E.field(name="[Generic05]"),
+        e.record(
+            e.field("123456", {"name": "[Proprietary_ID]"}),
+            e.field("FOOBAR", {"name": "[Username]"}),
+            e.field("F B", {"name": "[Initials]"}),
+            e.field("Gaz", {"name": "[LastName]"}),
+            e.field("Foobar", {"name": "[FirstName]"}),
+            e.field("foobar@example.com", {"name": "[Email]"}),
+            e.field("MIT", {"name": "[AuthenticatingAuthority]"}),
+            e.field("1", {"name": "[IsAcademic]"}),
+            e.field("1", {"name": "[IsCurrent]"}),
+            e.field("1", {"name": "[LoginAllowed]"}),
+            e.field("Chemistry Faculty", {"name": "[PrimaryGroupDescriptor]"}),
+            e.field("2001-01-01", {"name": "[ArriveDate]"}),
+            e.field("2010-01-01", {"name": "[LeaveDate]"}),
+            e.field("http://example.com/1", {"name": "[Generic01]"}),
+            e.field("CFAT", {"name": "[Generic02]"}),
+            e.field("SCIENCE AREA", {"name": "[Generic03]"}),
+            e.field("Chemistry", {"name": "[Generic04]"}),
+            e.field(name="[Generic05]"),
         ),
-        E.record(
-            E.field("098754", name="[Proprietary_ID]"),
-            E.field("THOR", name="[Username]"),
-            E.field("Þ H", name="[Initials]"),
-            E.field("Hammerson", name="[LastName]"),
-            E.field("Þorgerðr", name="[FirstName]"),
-            E.field("thor@example.com", name="[Email]"),
-            E.field("MIT", {"name": "[AuthenticatingAuthority]"}),
-            E.field("1", {"name": "[IsAcademic]"}),
-            E.field("1", {"name": "[IsCurrent]"}),
-            E.field("1", {"name": "[LoginAllowed]"}),
-            E.field(
+        e.record(
+            e.field("098754", name="[Proprietary_ID]"),
+            e.field("THOR", name="[Username]"),
+            e.field("Þ H", name="[Initials]"),
+            e.field("Hammerson", name="[LastName]"),
+            e.field("Þorgerðr", name="[FirstName]"),
+            e.field("thor@example.com", name="[Email]"),
+            e.field("MIT", {"name": "[AuthenticatingAuthority]"}),
+            e.field("1", {"name": "[IsAcademic]"}),
+            e.field("1", {"name": "[IsCurrent]"}),
+            e.field("1", {"name": "[LoginAllowed]"}),
+            e.field(
                 "Nuclear Science Non-faculty",
                 {"name": "[PrimaryGroupDescriptor]"},
             ),
-            E.field("2015-01-01", {"name": "[ArriveDate]"}),
-            E.field("2999-12-31", {"name": "[LeaveDate]"}),
-            E.field("http://example.com/2", {"name": "[Generic01]"}),
-            E.field("COAC", {"name": "[Generic02]"}),
-            E.field("ENGINEERING AREA", {"name": "[Generic03]"}),
-            E.field("Nuclear Science", {"name": "[Generic04]"}),
-            E.field(
-                "Nuclear Science and Engineering", {"name": "[Generic05]"}
-            ),
+            e.field("2015-01-01", {"name": "[ArriveDate]"}),
+            e.field("2999-12-31", {"name": "[LeaveDate]"}),
+            e.field("http://example.com/2", {"name": "[Generic01]"}),
+            e.field("COAC", {"name": "[Generic02]"}),
+            e.field("ENGINEERING AREA", {"name": "[Generic03]"}),
+            e.field("Nuclear Science", {"name": "[Generic04]"}),
+            e.field("Nuclear Science and Engineering", {"name": "[Generic05]"}),
         ),
     ]
 
 
 @pytest.fixture
-def xml_data(E, xml_records):
-    return E.records(*xml_records)
+def xml_data(e, xml_records):
+    return e.records(*xml_records)
 
 
 @pytest.fixture
-def E():
+def e():
     return ElementMaker(
         namespace="http://www.symplectic.co.uk/hrimporter",
         nsmap={None: "http://www.symplectic.co.uk/hrimporter"},
@@ -170,7 +163,7 @@ def E():
 
 
 @pytest.fixture
-def articles_data(aa_data):
+def articles_data():
     return B.ARTICLES(
         B.ARTICLE(
             B.AA_MATCH_SCORE("0.9"),

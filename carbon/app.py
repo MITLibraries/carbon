@@ -1,19 +1,27 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from contextlib import contextmanager, closing
-from datetime import datetime
-from functools import partial, update_wrapper
-from ftplib import FTP, FTP_TLS
+from __future__ import annotations
+
 import os
 import re
 import threading
+from contextlib import closing, contextmanager
+from datetime import UTC, datetime
+from ftplib import FTP, FTP_TLS  # nosec
+from functools import partial, update_wrapper
+from typing import IO, TYPE_CHECKING, Any
 
 import boto3
 import click
-from lxml import etree as ET
+from click import Context
+from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
-from carbon.db import persons, orcids, dlcs, engine, aa_articles
+from carbon.db import aa_articles, dlcs, engine, orcids, persons
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Generator
+    from socket import socket
+    from ssl import SSLContext
+
 
 AREAS = (
     "ARCHITECTURE & PLANNING AREA",
@@ -100,7 +108,7 @@ ENV_VARS = (
 )
 
 
-def people():
+def people() -> Generator[dict[str, Any], Any, None]:
     """A person generator.
 
     Returns an iterator of person dictionaries.
@@ -131,7 +139,10 @@ def people():
         .where(persons.c.KRB_NAME_UPPERCASE != "UNKNOWN")
         .where(persons.c.MIT_ID.is_not(None))
         .where(persons.c.ORIGINAL_HIRE_DATE.is_not(None))
-        .where(persons.c.APPOINTMENT_END_DATE >= datetime(2009, 1, 1))
+        .where(
+            persons.c.APPOINTMENT_END_DATE  # noqa: SIM300
+            >= datetime(2009, 1, 1)  # noqa: DTZ001
+        )
         .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(AREAS))
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES))
         .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
@@ -139,10 +150,10 @@ def people():
     with closing(engine().connect()) as conn:
         result = conn.execute(sql)
         for row in result:
-            yield dict(zip(result.keys(), row))
+            yield dict(zip(result.keys(), row, strict=True))
 
 
-def articles():
+def articles() -> Generator[dict[str, Any], Any, None]:
     """An article generator.
 
     Returns an iterator over the AA_ARTICLE table.
@@ -157,10 +168,10 @@ def articles():
     with closing(engine().connect()) as conn:
         result = conn.execute(sql)
         for row in result:
-            yield dict(zip(result.keys(), row))
+            yield dict(zip(result.keys(), row, strict=True))
 
 
-def initials(*args):
+def initials(*args: str) -> str:
     """Turn `*args` into a space-separated string of initials.
 
     Each argument is processed through :func:`~initialize_part` and
@@ -169,7 +180,7 @@ def initials(*args):
     return " ".join([initialize_part(n) for n in args if n])
 
 
-def initialize_part(name):
+def initialize_part(name: str) -> str:
     """Turn a name part into uppercased initials.
 
     This function will do its best to parse the argument into one or
@@ -186,26 +197,23 @@ def initialize_part(name):
         assert initialize_part('Foo-bar') == 'F-B'
         assert initialize_part(u'влад') == u'В'
 
-    """
+    """  # noqa: RUF002
     name = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE)
-    return "".join(
-        [x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]
-    ).upper()
+    return "".join([x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]).upper()
 
 
-def group_name(dlc, sub_area):
+def group_name(dlc: str, sub_area: str) -> str:
     qualifier = "Faculty" if sub_area in ("CFAT", "CFAN") else "Non-faculty"
-    return "{} {}".format(dlc, qualifier)
+    return f"{dlc} {qualifier}"
 
 
-def hire_date_string(original_start_date, date_to_faculty):
+def hire_date_string(original_start_date: datetime, date_to_faculty: datetime) -> str:
     if date_to_faculty:
         return date_to_faculty.strftime("%Y-%m-%d")
-    else:
-        return original_start_date.strftime("%Y-%m-%d")
+    return original_start_date.strftime("%Y-%m-%d")
 
 
-def _ns(namespace, element):
+def _ns(namespace: str, element: str) -> ET.QName:
     return ET.QName(namespace, element)
 
 
@@ -214,7 +222,12 @@ NSMAP = {None: SYMPLECTIC_NS}
 ns = partial(_ns, SYMPLECTIC_NS)
 
 
-def add_child(parent, element, text, **kwargs):
+def add_child(
+    parent: ET._Element,  # noqa: SLF001
+    element: str,
+    text: str | None = None,
+    **kwargs: str,
+) -> ET._Element:  # noqa: SLF001
     """Add a subelement with text."""
     child = ET.SubElement(parent, element, attrib=kwargs)
     child.text = text
@@ -228,10 +241,10 @@ class Writer:
     Elements.
     """
 
-    def __init__(self, out):
+    def __init__(self, out: IO):
         self.out = out
 
-    def write(self, feed_type):
+    def write(self, feed_type: str) -> None:
         """Write the specified feed type to the configured output."""
         if feed_type == "people":
             with person_feed(self.out) as f:
@@ -255,7 +268,7 @@ class PipeWriter(Writer):
     See :class:`carbon.app.FTPReader` for an example reader.
     """
 
-    def write(self, feed_type):
+    def write(self, feed_type: str) -> None:
         """Concurrently read/write from the configured inputs and outputs.
 
         This method will block until both the reader and writer are finished.
@@ -266,7 +279,7 @@ class PipeWriter(Writer):
         self.out.close()
         pipe.join()
 
-    def pipe(self, reader):
+    def pipe(self, reader: FTPReader) -> PipeWriter:
         """Connect the read end of the pipe.
 
         This should be called before :meth:`~carbon.app.PipeWriter.write`.
@@ -292,15 +305,22 @@ class CarbonCopyFTPS(FTP_TLS):
     still cleanly shutdown the connection.
     """
 
-    def ntransfercmd(self, cmd, rest=None):
+    def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
         conn, size = FTP.ntransfercmd(self, cmd, rest)
-        if self._prot_p:
+        if self._prot_p:  # type: ignore[attr-defined]
             conn = self.context.wrap_socket(
-                conn, server_hostname=self.host, session=self.sock.session
+                conn, server_hostname=self.host, session=self.sock.session  # type: ignore[union-attr] # noqa: E501
             )
         return conn, size
 
-    def storbinary(self, cmd, fp, blocksize=8192, callback=None, rest=None):
+    def storbinary(
+        self,
+        cmd: str,
+        fp: IO,  # type: ignore[override]
+        blocksize: int = 8192,
+        callback: Callable | None = None,
+        rest: str | None = None,  # type: ignore[override]
+    ) -> str:
         self.voidcmd("TYPE I")
         with self.transfercmd(cmd, rest) as conn:
             while 1:
@@ -315,7 +335,14 @@ class CarbonCopyFTPS(FTP_TLS):
 
 class FTPReader:
     def __init__(
-        self, fp, user, passwd, path, host="localhost", port=21, ctx=None
+        self,
+        fp: IO,
+        user: str,
+        passwd: str,
+        path: str,
+        host: str = "localhost",
+        port: int = 21,
+        ctx: SSLContext | None = None,
     ):
         self.fp = fp
         self.user = user
@@ -325,7 +352,7 @@ class FTPReader:
         self.port = port
         self.ctx = ctx
 
-    def __call__(self):
+    def __call__(self) -> None:
         """Transfer a file using FTP over TLS."""
         ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
         ftps.connect(self.host, self.port)
@@ -336,7 +363,7 @@ class FTPReader:
 
 
 @contextmanager
-def person_feed(out):
+def person_feed(out: IO) -> Generator:
     """Generate XML feed of people.
 
     This is a streaming XML generator for people. Output will be
@@ -356,7 +383,7 @@ def person_feed(out):
 
 
 @contextmanager
-def article_feed(out):
+def article_feed(out: IO) -> Generator:
     """Generate XML feed of articles."""
     with ET.xmlfile(out, encoding="UTF-8") as xf:
         xf.write_declaration()
@@ -364,7 +391,7 @@ def article_feed(out):
             yield partial(_add_article, xf)
 
 
-def _add_article(xf, article):
+def _add_article(xf: IO, article: dict[str, Any]) -> None:
     record = ET.Element("ARTICLE")
     add_child(record, "AA_MATCH_SCORE", str(article["AA_MATCH_SCORE"]))
     add_child(record, "ARTICLE_ID", article["ARTICLE_ID"])
@@ -374,9 +401,7 @@ def _add_article(xf, article):
     add_child(record, "DOI", article["DOI"])
     add_child(record, "ISSN_ELECTRONIC", article["ISSN_ELECTRONIC"])
     add_child(record, "ISSN_PRINT", article["ISSN_PRINT"])
-    add_child(
-        record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"]
-    )
+    add_child(record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"])
     add_child(record, "JOURNAL_FIRST_PAGE", article["JOURNAL_FIRST_PAGE"])
     add_child(record, "JOURNAL_LAST_PAGE", article["JOURNAL_LAST_PAGE"])
     add_child(record, "JOURNAL_ISSUE", article["JOURNAL_ISSUE"])
@@ -387,7 +412,7 @@ def _add_article(xf, article):
     xf.write(record)
 
 
-def _add_person(xf, person):
+def _add_person(xf: IO, person: dict[str, Any]) -> None:
     record = ET.Element("record")
     add_child(record, "field", person["MIT_ID"], name="[Proprietary_ID]")
     add_child(record, "field", person["KRB_NAME_UPPERCASE"], name="[Username]")
@@ -413,9 +438,7 @@ def _add_person(xf, person):
     add_child(
         record,
         "field",
-        hire_date_string(
-            person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]
-        ),
+        hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
         name="[ArriveDate]",
     )
     add_child(
@@ -425,25 +448,16 @@ def _add_person(xf, person):
         name="[LeaveDate]",
     )
     add_child(record, "field", person["ORCID"], name="[Generic01]")
-    add_child(
-        record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]"
-    )
-    add_child(
-        record,
-        "field",
-        person["ORG_HIER_SCHOOL_AREA_NAME"],
-        name="[Generic03]",
-    )
+    add_child(record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]")
+    add_child(record, "field", person["ORG_HIER_SCHOOL_AREA_NAME"], name="[Generic03]")
     add_child(record, "field", person["DLC_NAME"], name="[Generic04]")
-    add_child(
-        record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]"
-    )
+    add_child(record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]")
     xf.write(record)
 
 
 class Config(dict):
     @classmethod
-    def from_env(cls):
+    def from_env(cls) -> Config:
         cfg = cls()
         for var in ENV_VARS:
             cfg[var] = os.environ.get(var)
@@ -451,13 +465,17 @@ class Config(dict):
 
 
 class FTPFeeder:
-    def __init__(self, event, context, config, ssl_ctx=None):
+    def __init__(
+        self,
+        event: dict[str, str],
+        config: dict,
+        ssl_ctx: SSLContext | None = None,
+    ):
         self.event = event
-        self.context = context
         self.config = config
         self.ssl_ctx = ssl_ctx
 
-    def run(self):
+    def run(self) -> None:
         r, w = os.pipe()
         feed_type = self.event["feed_type"]
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
@@ -473,19 +491,15 @@ class FTPFeeder:
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
 
 
-def sns_log(f):
+def sns_log(f: Callable) -> Callable:
     """AWS SNS log decorator for wrapping a click command.
 
     This can be used as a decorator for a click command. It will wrap
     execution of the click command in a try/except so that any exception
     can be logged to the SNS topic before being re-raised.
     """
-    msg_start = (
-        "[{}] Starting carbon run for the {} feed in the {} " "environment."
-    )
-    msg_success = (
-        "[{}] Finished carbon run for the {} feed in the {} " "environment."
-    )
+    msg_start = "[{}] Starting carbon run for the {} feed in the {} environment."
+    msg_success = "[{}] Finished carbon run for the {} feed in the {} environment."
     msg_fail = (
         "[{}] The following problem was encountered during the "
         "carbon run for the {} feed in the {} environment:\n\n"
@@ -493,7 +507,7 @@ def sns_log(f):
     )
 
     @click.pass_context
-    def wrapped(ctx, *args, **kwargs):
+    def wrapped(ctx: Context, *args: str, **kwargs: str) -> Callable:
         sns_id = ctx.params.get("sns_topic")
         if sns_id:
             client = boto3.client("sns")
@@ -502,9 +516,7 @@ def sns_log(f):
             client.publish(
                 TopicArn=sns_id,
                 Subject="Carbon run",
-                Message=msg_start.format(
-                    datetime.utcnow().isoformat(), feed, stage
-                ),
+                Message=msg_start.format(datetime.now(tz=UTC).isoformat(), feed, stage),
             )
             try:
                 res = ctx.invoke(f, *args, **kwargs)
@@ -513,7 +525,7 @@ def sns_log(f):
                     TopicArn=sns_id,
                     Subject="Carbon run",
                     Message=msg_fail.format(
-                        datetime.utcnow().isoformat(), feed, stage, e
+                        datetime.now(tz=UTC).isoformat(), feed, stage, e
                     ),
                 )
                 raise
@@ -522,7 +534,7 @@ def sns_log(f):
                     TopicArn=sns_id,
                     Subject="Carbon run",
                     Message=msg_success.format(
-                        datetime.utcnow().isoformat(), feed, stage
+                        datetime.now(tz=UTC).isoformat(), feed, stage
                     ),
                 )
         else:

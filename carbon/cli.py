@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import json
+from typing import IO
 
 import boto3
 import click
@@ -19,8 +17,7 @@ from carbon.db import engine
 @click.option(
     "--ftp",
     is_flag=True,
-    help="Send output to FTP server; do not "
-    "use this with the -o/--out option",
+    help="Send output to FTP server; do not use this with the -o/--out option",
 )
 @click.option(
     "--ftp-host",
@@ -38,9 +35,7 @@ from carbon.db import engine
 )
 @click.option("--ftp-user", envvar="FTP_USER", help="FTP username")
 @click.option("--ftp-pass", envvar="FTP_PASS", help="FTP password")
-@click.option(
-    "--ftp-path", envvar="FTP_PATH", help="Full path to file on FTP server"
-)
+@click.option("--ftp-path", envvar="FTP_PATH", help="Full path to file on FTP server")
 @click.option(
     "--secret-id",
     help="AWS Secrets id containing DB connection "
@@ -56,18 +51,19 @@ from carbon.db import engine
 )
 @sns_log
 def main(
-    feed_type,
-    db,
-    out,
-    ftp,
-    ftp_host,
-    ftp_port,
-    ftp_user,
-    ftp_pass,
-    ftp_path,
-    secret_id,
-    sns_topic,
-):
+    feed_type: str,
+    db: str,
+    out: IO,
+    ftp_host: str,
+    ftp_port: int,
+    ftp_user: str,
+    ftp_pass: str,
+    ftp_path: str,
+    secret_id: str,
+    sns_topic: str,  # noqa: ARG001
+    *,
+    ftp: bool,
+) -> None:
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -105,8 +101,8 @@ def main(
 
     engine.configure(cfg["CARBON_DB"])
     if ftp:
-        click.echo("Starting carbon run for {}".format(feed_type))
-        FTPFeeder({"feed_type": feed_type}, None, cfg).run()
-        click.echo("Finished carbon run for {}".format(feed_type))
+        click.echo(f"Starting carbon run for {feed_type}")
+        FTPFeeder({"feed_type": feed_type}, cfg).run()
+        click.echo(f"Finished carbon run for {feed_type}")
     else:
         Writer(out=out).write(feed_type)

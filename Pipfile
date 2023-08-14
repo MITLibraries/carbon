@@ -4,20 +4,28 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
+black = "*"
+boto3-stubs = {extras = ["essential"], version = "*"}
 coveralls = "*"
+lxml-stubs = "*"
+mypy = "*"
+pre-commit = "*"
 pytest = "*"
 pytest-cov = "*"
 PyYAML = "*"
 pyftpdlib = "*"
 pyopenssl = "*"
-flake8 = "*"
+ruff = "*"
+types-setuptools = "*"
+
 
 [packages]
+boto3 = "*"
 click = "*"
 lxml = "*"
-SQLAlchemy = "*"
 oracledb = "*"
-"boto3" = "*"
+SQLAlchemy = "*"
+
 sentry-sdk = "*"
 
 [requires]

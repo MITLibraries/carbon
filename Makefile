@@ -18,6 +18,7 @@ DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
 install: # install python dependencies
 	pipenv install --dev
+	pipenv run pre-commit install
 
 update: install # update all python dependencies
 	pipenv clean
@@ -38,8 +39,30 @@ coveralls: test
 
 ## ---- Code quality and safety commands ---- ##
 
-lint: ## run linters
-	pipenv run flake8 carbon
+# linting commands
+lint: black mypy ruff safety 
+
+black:
+	pipenv run black --check --diff .
+
+mypy:
+	pipenv run mypy .
+
+ruff:
+	pipenv run ruff check .
+
+safety:
+	pipenv check
+	pipenv verify
+
+# apply changes to resolve any linting errors
+lint-apply: black-apply ruff-apply
+
+black-apply: 
+	pipenv run black .
+
+ruff-apply: 
+	pipenv run ruff check --fix .
 
 ## ---- Terraform-generated Developer Deploy Commands for Dev1 environment ---- ##
 
