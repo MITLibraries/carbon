@@ -44,26 +44,8 @@ When a PR is merged onto the `main` branch, Github Actions will build a new cont
 
 Tagging a release on the `main` branch will promote a copy of the `latest` container from Stage-Worklods to Prod.
 
-## Configuration
 
-The Fargate task needs the following arguments passed in at runtime.
 
-| Argument | Description |
-|----------|-------------|
-| --ftp | |
-| --sns-topic | The ARN for the SNS topic. This is used to send an email notification. |
-| \<feed_type\> | The type of feed to run. This should be either `people` or `articles`. |
-
-The ECS Fargate task also makes use of the following environment variables.
-
-| Argument | Description |
-|----------|-------------|
-| `CARBON_DB` | an SQLAlchemy database connection string of the form `oracle://<username>:<password>@<server>:1521/<sid>`. |
-| `FTP_HOST` | Hostname of FTP server |
-| `FTP_PORT` | FTP server port |
-| `FTP_USER` | FTP username |
-| `FTP_PASS` | FTP password |
-| `FTP_PATH` | Full path to file on FTP server |
 
 These values are all set in the ECS Task Definition by the Terraform code in [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon).
 
@@ -83,10 +65,21 @@ Carbon will generate an XML feed that can be uploaded to Symplectic. The command
 (carbon)$ env CARBON_DB sqlite:///people.db carbon people
 ```
 
+## Required ENV
+* `FEED_TYPE` = The type of feed and is set to either "people" or "articles".
+* `CONNECTION_STRING` = The connection string of the form `oracle://<username>:<password>@<server>:1521/<sid>` for the Data Warehouse.
+* `SNS_TOPIC` = The ARN for the SNS topic used for sending email notifications.
+* `SYMPLECTIC_FTP_HOST` = The hostname of the Symplectic FTP server.
+* `SYMPLECTIC_FTP_PORT` = The port of the Symplectic FTP server.
+* `SYMPLECTIC_FTP_USER` = The username for accessing the Symplectic FTP server.
+* `SYMPLECTIC_FTP_PASS` = The password for accessing the Symplectic FTP server.
+* `SYMPLECTIC_FTP_PATH` = The full file path to the XML file (including the file name) that is uploaded to the Symplectic FTP server.
+* `WORKSPACE` = Set to `dev` for local development. This will be set to `stage` and `prod` in those environments by Terraform.
+
+
+
 ## Optional ENV
 
-* `LOG_LEVEL` = The log level for the alma-patronload application. Defaults to INFO if not set.
-
+* `LOG_LEVEL` = The log level for the `carbon` application. Defaults to `INFO` if not set.
 * `ORACLE_LIB_DIR` = The directory containing the Oracle Instant Client library.
-
 * `SENTRY_DSN` = If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
