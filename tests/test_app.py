@@ -1,7 +1,9 @@
 import os
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
+from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.app import (
@@ -17,7 +19,9 @@ from carbon.app import (
     ns,
     people,
     person_feed,
+    sns_log,
 )
+from carbon.config import load_config_values
 
 pytestmark = pytest.mark.usefixtures("_load_data")
 
@@ -180,3 +184,17 @@ def test_article_feed_adds_article(aa_data, articles_data):
 def test_articles_skips_articles_without_required_fields():
     arts = list(articles())
     assert len(arts) == 1
+
+
+@freeze_time("2023-08-18")
+def test_sns_log(caplog, stubbed_sns_client):
+    config_values = load_config_values()
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client
+        sns_log(config_values, status="start")
+
+        sns_log(config_values, status="success")
+        assert "Carbon run has successfully completed." in caplog.text
+
+        sns_log(config_values, status="fail")
+        assert "Carbon run has failed." in caplog.text

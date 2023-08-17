@@ -44,11 +44,6 @@ When a PR is merged onto the `main` branch, Github Actions will build a new cont
 
 Tagging a release on the `main` branch will promote a copy of the `latest` container from Stage-Worklods to Prod.
 
-
-
-
-These values are all set in the ECS Task Definition by the Terraform code in [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon).
-
 ## Usage
 
 The CLI interface works the same whether running locally or as a container. When running as a container, however, remember that if specifying an output file (rather than stdout) it will go to a file local to the container, not your host system.

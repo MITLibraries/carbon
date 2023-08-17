@@ -49,7 +49,7 @@ def test_load_config_values_success():
         "FEED_TYPE": "test_feed_type",
         "LOG_LEVEL": "INFO",
         "SENTRY_DSN": "test_sentry_dsn",
-        "SNS_TOPIC": "test_sns_topic",
+        "SNS_TOPIC": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
         "WORKSPACE": "test",
         "CONNECTION_STRING": "sqlite://",
         "SYMPLECTIC_FTP_PATH": "/people.xml",

@@ -7,7 +7,9 @@ name = "pypi"
 black = "*"
 boto3-stubs = {extras = ["essential"], version = "*"}
 coveralls = "*"
+freezegun = "*"
 lxml-stubs = "*"
+moto = {extras = ["sns"], version = "*"}
 mypy = "*"
 pre-commit = "*"
 pytest = "*"

@@ -1,7 +1,9 @@
 import os
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
+from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.cli import main
@@ -14,21 +16,38 @@ def runner():
     return CliRunner()
 
 
-def test_people_returns_people(runner, people_data, ftp_server):
-    s, d = ftp_server
-    os.environ["FEED_TYPE"] = "people"
-    os.environ["SYMPLECTIC_FTP_PATH"] = "/people.xml"
-    os.environ["SYMPLECTIC_FTP_JSON"] = (
-        '{"SYMPLECTIC_FTP_HOST": "localhost", '
-        f'"SYMPLECTIC_FTP_PORT": "{s[1]}",'
-        '"SYMPLECTIC_FTP_USER": "user", '
-        '"SYMPLECTIC_FTP_PASS": "pass"}'
+@freeze_time("2023-08-18")
+@pytest.mark.parametrize(
+    ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
+)
+def test_people_returns_people(
+    feed_type,
+    symplectic_ftp_path,
+    monkeypatch,
+    runner,
+    people_data,
+    ftp_server,
+    stubbed_sns_client,
+):
+    ftp_socket, ftp_directory = ftp_server
+    os.environ["FEED_TYPE"] = feed_type
+    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
     )
 
-    result = runner.invoke(main)
-    assert result.exit_code == 0
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client
+        result = runner.invoke(main)
+        assert result.exit_code == 0
 
-    people_element = ET.parse(os.path.join(d, "people.xml"))
+    people_element = ET.parse(os.path.join(ftp_directory, "people.xml"))
     people_xml_string = ET.tostring(
         people_element, encoding="UTF-8", xml_declaration=True
     )
@@ -37,21 +56,38 @@ def test_people_returns_people(runner, people_data, ftp_server):
     )
 
 
-def test_articles_returns_articles(runner, articles_data, ftp_server):
-    s, d = ftp_server
-    os.environ["FEED_TYPE"] = "articles"
-    os.environ["SYMPLECTIC_FTP_PATH"] = "/articles.xml"
-    os.environ["SYMPLECTIC_FTP_JSON"] = (
-        '{"SYMPLECTIC_FTP_HOST": "localhost", '
-        f'"SYMPLECTIC_FTP_PORT": "{s[1]}",'
-        '"SYMPLECTIC_FTP_USER": "user", '
-        '"SYMPLECTIC_FTP_PASS": "pass"}'
+@freeze_time("2023-08-18")
+@pytest.mark.parametrize(
+    ("feed_type", "symplectic_ftp_path"), [("articles", "/articles.xml")], indirect=True
+)
+def test_articles_returns_articles(
+    feed_type,
+    symplectic_ftp_path,
+    monkeypatch,
+    runner,
+    articles_data,
+    ftp_server,
+    stubbed_sns_client,
+):
+    ftp_socket, ftp_directory = ftp_server
+    os.environ["FEED_TYPE"] = feed_type
+    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
     )
 
-    result = runner.invoke(main)
-    assert result.exit_code == 0
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client
+        result = runner.invoke(main)
+        assert result.exit_code == 0
 
-    articles_element = ET.parse(os.path.join(d, "articles.xml"))
+    articles_element = ET.parse(os.path.join(ftp_directory, "articles.xml"))
     articles_xml_string = ET.tostring(
         articles_element, encoding="UTF-8", xml_declaration=True
     )
@@ -60,17 +96,29 @@ def test_articles_returns_articles(runner, articles_data, ftp_server):
     )
 
 
-def test_file_is_ftped(runner, ftp_server):
-    s, d = ftp_server
-    os.environ["FEED_TYPE"] = "people"
-    os.environ["SYMPLECTIC_FTP_PATH"] = "/peeps.xml"
-    os.environ["SYMPLECTIC_FTP_JSON"] = (
-        '{"SYMPLECTIC_FTP_HOST": "localhost", '
-        f'"SYMPLECTIC_FTP_PORT": "{s[1]}",'
-        '"SYMPLECTIC_FTP_USER": "user", '
-        '"SYMPLECTIC_FTP_PASS": "pass"}'
+@freeze_time("2023-08-18")
+@pytest.mark.parametrize(
+    ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
+)
+def test_file_is_ftped(
+    feed_type, symplectic_ftp_path, monkeypatch, runner, ftp_server, stubbed_sns_client
+):
+    ftp_socket, ftp_directory = ftp_server
+    os.environ["FEED_TYPE"] = feed_type
+    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
     )
 
-    result = runner.invoke(main)
-    assert result.exit_code == 0
-    assert os.path.exists(os.path.join(d, "peeps.xml"))
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client
+        result = runner.invoke(main)
+        assert result.exit_code == 0
+
+    assert os.path.exists(os.path.join(ftp_directory, "people.xml"))

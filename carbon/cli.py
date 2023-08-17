@@ -12,15 +12,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.version_option()
-@click.option(
-    "--sns-topic",
-    help="AWS SNS Topic ARN. If given, a message "
-    "will be sent when the load begins and "
-    "then another message will be sent with "
-    "the outcome of the load.",
-)
-@sns_log
-def main(sns_topic: str | None = None) -> None:  # noqa: ARG001
+def main() -> None:
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -41,13 +33,23 @@ def main(sns_topic: str | None = None) -> None:  # noqa: ARG001
     --ftp should be used.
     """
     config_values = load_config_values()
-    root_logger = logging.getLogger()
-    logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
-    # configure_sentry() # noqa: ERA001
-    logger.info("Carbon config settings loaded for environment: %s")
+    sns_log(config_values=config_values, status="start")
 
-    engine.configure(config_values["CONNECTION_STRING"])
+    try:
+        root_logger = logging.getLogger()
+        logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
+        # configure_sentry() # noqa: ERA001
+        logger.info(
+            "Carbon config settings loaded for environment: %s",
+            config_values["WORKSPACE"],
+        )
 
-    click.echo("Starting carbon run for {}".format(config_values["FEED_TYPE"]))
-    FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values).run()
-    click.echo("Finished carbon run for {}".format(config_values["FEED_TYPE"]))
+        engine.configure(config_values["CONNECTION_STRING"])
+
+        click.echo("Starting carbon run for {}".format(config_values["FEED_TYPE"]))
+        FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values).run()
+        click.echo("Finished carbon run for {}".format(config_values["FEED_TYPE"]))
+    except RuntimeError:
+        sns_log(config_values=config_values, status="fail")
+    else:
+        sns_log(config_values=config_values, status="success")
