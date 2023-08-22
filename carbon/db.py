@@ -1,4 +1,6 @@
+import logging
 import os
+from typing import Any
 
 from sqlalchemy import (
     Column,
@@ -13,6 +15,8 @@ from sqlalchemy import (
     UnicodeText,
     create_engine,
 )
+
+logger = logging.getLogger(__name__)
 
 os.environ["NLS_LANG"] = "AMERICAN_AMERICA.UTF8"
 
@@ -101,8 +105,26 @@ class DatabaseEngine:
         )
         raise AttributeError(nonconfigured_engine_error_message)
 
-    def configure(self, conn: str) -> None:
-        self._engine = self._engine or create_engine(conn)
+    def configure(self, conn: str, **kwargs: Any) -> None:  # noqa: ANN401
+        self._engine = self._engine or create_engine(conn, **kwargs)
+
+    def run_connection_test(self) -> None:
+        logger.info("Testing connection to the Data Warehouse")
+        try:
+            connection = self._engine.connect()  # type: ignore[union-attr]
+        except Exception as error:
+            error_message = f"Failed to connect to the Data Warehouse: {error}"
+            logger.exception(error_message)
+        else:
+            dbapi_connection = connection.connection
+            version = (
+                dbapi_connection.version if hasattr(dbapi_connection, "version") else ""
+            )
+            logger.info(
+                "Successfully connected to the Data Warehouse: %s",
+                version,  # type: ignore[union-attr]
+            )
+            connection.close()
 
 
 # create the database engine

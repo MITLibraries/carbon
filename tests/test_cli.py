@@ -122,3 +122,10 @@ def test_file_is_ftped(
         assert result.exit_code == 0
 
     assert os.path.exists(os.path.join(ftp_directory, "people.xml"))
+
+
+def test_cli_database_connection_success(caplog, runner):
+    result = runner.invoke(main, ["--database_connection_test"])
+    assert result.exit_code == 0
+    assert "Testing connection to the Data Warehouse" in caplog.text
+    assert "Successfully connected to the Data Warehouse" in caplog.text

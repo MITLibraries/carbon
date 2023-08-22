@@ -30,7 +30,20 @@ From the project folder:
 
 1. Download Oracle Instant Client (basiclite is sufficient) and set the ORACLE_LIB_DIR env variable.
 
-2. Run pipenv run patronload.
+2. Run `pipenv run carbon`.
+
+## Connecting to the Data Warehouse
+
+The password for the Data Warehouse is updated each year. To verify that the updated password works, the app must be run as an ECS task in the stage environment because Cloudconnector is not enabled in `dev1`. The app can run a database connection test when called with the flag, `--database_connection_test`.
+
+1. Export stage credentials and set `ECR_NAME_STAGE` and `ECR_URL_STAGE` env variables.
+2. Run `make install`.
+3. Run `make database-connection-test-stage`.
+4. View the logs from the ECS task run on CloudWatch.
+   * On CloudWatch, select the `carbon-ecs-stage` log group.
+   * Select the most recent log stream.
+   * Verify that the following log is included:
+      > Successfully connected to the Data Warehouse: \<VERSION NUMBER\>
 
 ## Deploying
 
