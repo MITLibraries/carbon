@@ -4,7 +4,7 @@ import os
 import click
 
 from carbon.app import FTPFeeder, sns_log
-from carbon.config import configure_logger, load_config_values  # configure_sentry
+from carbon.config import configure_logger, configure_sentry, load_config_values
 from carbon.db import engine
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def main() -> None:
     try:
         root_logger = logging.getLogger()
         logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
-        # configure_sentry() # noqa: ERA001
+        configure_sentry()
         logger.info(
             "Carbon config settings loaded for environment: %s",
             config_values["WORKSPACE"],

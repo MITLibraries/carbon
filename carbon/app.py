@@ -491,29 +491,32 @@ def sns_log(
     feed = config_values.get("FEED_TYPE", "")
 
     if status == "start":
-        msg_start = "[{}] Starting carbon run for the {} feed in the {} environment."
         sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
-            Message=msg_start.format(datetime.now(tz=UTC).isoformat(), feed, stage),
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] Starting carbon run for the "
+                f"{feed} feed in the {stage} environment."
+            ),
         )
     elif status == "success":
-        msg_success = "[{}] Finished carbon run for the {} feed in the {} environment."
         sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
-            Message=msg_success.format(datetime.now(tz=UTC).isoformat(), feed, stage),
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] Finished carbon run for the "
+                f"{feed} feed in the {stage} environment."
+            ),
         )
         logger.info("Carbon run has successfully completed.")
     elif status == "fail":
-        msg_fail = (
-            "[{}] The following problem was encountered during the "
-            "carbon run for the {} feed in the {} environment:\n\n"
-            "{}"
-        )
         sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
-            Message=msg_fail.format(datetime.now(tz=UTC).isoformat(), feed, stage, error),
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] The following problem was "
+                f"encountered during the carbon run for the {feed} feed "
+                f"in the {stage} environment: {error}."
+            ),
         )
         logger.info("Carbon run has failed.")

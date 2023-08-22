@@ -27,7 +27,7 @@ def _app_init():
 def _test_env():
     os.environ["FEED_TYPE"] = "test_feed_type"
     os.environ["LOG_LEVEL"] = "INFO"
-    os.environ["SENTRY_DSN"] = "test_sentry_dsn"
+    os.environ["SENTRY_DSN"] = "None"
     os.environ["SNS_TOPIC"] = "arn:aws:sns:us-east-1:123456789012:test_sns_topic"
     os.environ["WORKSPACE"] = "test"
     os.environ["DATAWAREHOUSE_CLOUDCONNECTOR_JSON"] = '{"CONNECTION_STRING": "sqlite://"}'
@@ -245,10 +245,6 @@ def stubbed_sns_client():
         "ResponseMetadata": {
             "RequestId": "f187a3c1-376f-11df-8963-01868b7c937a",
             "HTTPStatusCode": 200,
-            "HTTPHeaders": {
-                "server": "amazon.com",
-                "date": "Thu, 17 Aug 2023 10:19:42 GMT",
-            },
             "RetryAttempts": 0,
         },
     }
