@@ -236,10 +236,11 @@ def symplectic_ftp_path(request, monkeypatch):
 def stubbed_sns_client():
     stage = os.environ.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
     feed = os.environ.get("FEED_TYPE", "")
-    msg_start = "[{}] Starting carbon run for the {} feed in the {} environment."
+
     sns_client = botocore.session.get_session().create_client(
         "sns", region_name="us-east-1"
     )
+
     expected_response = {
         "MessageId": "47e1b891-31aa-41d6-a5bf-d35b95d1027d",
         "ResponseMetadata": {
@@ -248,10 +249,14 @@ def stubbed_sns_client():
             "RetryAttempts": 0,
         },
     }
+
     expected_start_params = {
         "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
         "Subject": "Carbon run",
-        "Message": msg_start.format("2023-08-18T00:00:00+00:00", feed, stage),
+        "Message": (
+            f"[2023-08-18T00:00:00+00:00] Starting carbon run for the "
+            f"{feed} feed in the {stage} environment."
+        ),
     }
 
     # ANY is used because 'Message' parameter expects a single value

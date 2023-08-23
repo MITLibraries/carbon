@@ -46,9 +46,9 @@ def main() -> None:
 
         engine.configure(config_values["CONNECTION_STRING"])
 
-        click.echo("Starting carbon run for {}".format(config_values["FEED_TYPE"]))
+        click.echo(f"Starting carbon run for {config_values['FEED_TYPE']}")
         FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values).run()
-        click.echo("Finished carbon run for {}".format(config_values["FEED_TYPE"]))
+        click.echo(f"Finished carbon run for {config_values['FEED_TYPE']}")
     except RuntimeError:
         sns_log(config_values=config_values, status="fail")
     else:
