@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.version_option()
-@click.option("--database_connection_test", is_flag=True)
-def main(*, database_connection_test: bool) -> None:
+@click.option("--run_connection_tests", is_flag=True)
+def main(*, run_connection_tests: bool) -> None:
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -47,13 +47,18 @@ def main(*, database_connection_test: bool) -> None:
         config_values["WORKSPACE"],
     )
 
+    # test connection to the Data Warehouse
     engine.configure(config_values["CONNECTION_STRING"], thick_mode=True)
     engine.run_connection_test()
 
-    if not database_connection_test:
+    # test connection to the Symplectic Elements FTP server
+    ftp_feed = FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values)
+    ftp_feed.run_connection_test()
+
+    if not run_connection_tests:
         sns_log(config_values=config_values, status="start")
         try:
-            FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values).run()
+            ftp_feed.run()
         except Exception as error:  # noqa: BLE001
             sns_log(config_values=config_values, status="fail", error=error)
         else:

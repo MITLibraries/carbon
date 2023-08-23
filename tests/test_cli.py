@@ -7,8 +7,7 @@ from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.cli import main
-
-pytestmark = pytest.mark.usefixtures("_load_data")
+from carbon.db import engine
 
 
 @pytest.fixture
@@ -20,6 +19,7 @@ def runner():
 @pytest.mark.parametrize(
     ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
 )
+@pytest.mark.usefixtures("_load_data")
 def test_people_returns_people(
     feed_type,
     symplectic_ftp_path,
@@ -60,6 +60,7 @@ def test_people_returns_people(
 @pytest.mark.parametrize(
     ("feed_type", "symplectic_ftp_path"), [("articles", "/articles.xml")], indirect=True
 )
+@pytest.mark.usefixtures("_load_data")
 def test_articles_returns_articles(
     feed_type,
     symplectic_ftp_path,
@@ -100,8 +101,14 @@ def test_articles_returns_articles(
 @pytest.mark.parametrize(
     ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
 )
+@pytest.mark.usefixtures("_load_data")
 def test_file_is_ftped(
-    feed_type, symplectic_ftp_path, monkeypatch, runner, ftp_server, stubbed_sns_client
+    feed_type,
+    symplectic_ftp_path,
+    monkeypatch,
+    runner,
+    ftp_server,
+    stubbed_sns_client,
 ):
     ftp_socket, ftp_directory = ftp_server
     os.environ["FEED_TYPE"] = feed_type
@@ -124,8 +131,41 @@ def test_file_is_ftped(
     assert os.path.exists(os.path.join(ftp_directory, "people.xml"))
 
 
-def test_cli_database_connection_success(caplog, runner):
-    result = runner.invoke(main, ["--database_connection_test"])
+def test_cli_connection_tests_success(caplog, ftp_server, monkeypatch, runner):
+    ftp_socket, _ = ftp_server
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
+    )
+    result = runner.invoke(main, ["--run_connection_tests"])
     assert result.exit_code == 0
-    assert "Testing connection to the Data Warehouse" in caplog.text
     assert "Successfully connected to the Data Warehouse" in caplog.text
+    assert "Successfully connected to the Symplectic Elements FTP server" in caplog.text
+
+
+def test_cli_connection_tests_fail(caplog, ftp_server, monkeypatch, runner):
+    ftp_socket, ftp_directory = ftp_server
+
+    # override engine from pytest fixture
+    # configure with connection string that will error out with engine.connect()
+    engine._engine = None  # noqa: SLF001
+    engine.configure(connection_string="sqlite:///nonexistent_directory/bad.db")
+
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "invalid_password"}'
+        ),
+    )
+    result = runner.invoke(main, ["--run_connection_tests"])
+    assert result.exit_code == 0
+    assert "Failed to connect to the Data Warehouse" in caplog.text
+    assert "Failed to connect to the Symplectic Elements FTP server" in caplog.text
