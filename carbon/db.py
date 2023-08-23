@@ -105,10 +105,15 @@ class DatabaseEngine:
         )
         raise AttributeError(nonconfigured_engine_error_message)
 
-    def configure(self, conn: str, **kwargs: Any) -> None:  # noqa: ANN401
-        self._engine = self._engine or create_engine(conn, **kwargs)
+    def configure(self, connection_string: str, **kwargs: Any) -> None:  # noqa: ANN401
+        self._engine = self._engine or create_engine(connection_string, **kwargs)
 
     def run_connection_test(self) -> None:
+        """Test connection to the Data Warehouse.
+
+        Verify that the provided Data Warehouse credentials can be used
+        to successfully connect to the Data Warehouse.
+        """
         logger.info("Testing connection to the Data Warehouse")
         try:
             connection = self._engine.connect()  # type: ignore[union-attr]

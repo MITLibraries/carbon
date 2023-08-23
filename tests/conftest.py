@@ -95,23 +95,23 @@ def ftp_server_wrapper(ftp_server):
 
 @pytest.fixture
 def _load_data(records, aa_data):
-    with closing(engine().connect()) as conn:
-        conn.execute(persons.delete())
-        conn.execute(orcids.delete())
-        conn.execute(dlcs.delete())
-        conn.execute(aa_articles.delete())
+    with closing(engine().connect()) as connection:
+        connection.execute(persons.delete())
+        connection.execute(orcids.delete())
+        connection.execute(dlcs.delete())
+        connection.execute(aa_articles.delete())
         for r in records:
-            conn.execute(persons.insert(), r["person"])
-            conn.execute(orcids.insert(), r["orcid"])
-            conn.execute(dlcs.insert(), r["dlc"])
-        conn.execute(aa_articles.insert(), aa_data)
-        conn.commit()
+            connection.execute(persons.insert(), r["person"])
+            connection.execute(orcids.insert(), r["orcid"])
+            connection.execute(dlcs.insert(), r["dlc"])
+        connection.execute(aa_articles.insert(), aa_data)
+        connection.commit()
     yield
-    with closing(engine().connect()) as conn:
-        conn.execute(persons.delete())
-        conn.execute(orcids.delete())
-        conn.execute(dlcs.delete())
-        conn.execute(aa_articles.delete())
+    with closing(engine().connect()) as connection:
+        connection.execute(persons.delete())
+        connection.execute(orcids.delete())
+        connection.execute(dlcs.delete())
+        connection.execute(aa_articles.delete())
 
 
 @pytest.fixture

@@ -147,8 +147,8 @@ def people() -> Generator[dict[str, Any], Any, None]:
         .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(PS_CODES))
         .where(func.upper(persons.c.JOB_TITLE).in_(TITLES))
     )
-    with closing(engine().connect()) as conn:
-        result = conn.execute(sql)
+    with closing(engine().connect()) as connection:
+        result = connection.execute(sql)
         for row in result:
             yield dict(zip(result.keys(), row, strict=True))
 
@@ -165,8 +165,8 @@ def articles() -> Generator[dict[str, Any], Any, None]:
         .where(aa_articles.c.DOI.is_not(None))
         .where(aa_articles.c.MIT_ID.is_not(None))
     )
-    with closing(engine().connect()) as conn:
-        result = conn.execute(sql)
+    with closing(engine().connect()) as connection:
+        result = connection.execute(sql)
         for row in result:
             yield dict(zip(result.keys(), row, strict=True))
 
