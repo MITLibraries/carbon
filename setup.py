@@ -11,6 +11,7 @@ try:
         ["git", "describe", "--always"],  # noqa: S603, S607
         stdout=subprocess.PIPE,
         encoding="utf-8",
+        check=False,
     )
     version = output.stdout.strip()
 except subprocess.CalledProcessError:

@@ -1,69 +1,18 @@
-import json
-from typing import IO
+import logging
+import os
 
-import boto3
 import click
 
-from carbon.app import Config, FTPFeeder, Writer, sns_log
-from carbon.config import configure_sentry
+from carbon.app import FTPFeeder, sns_log
+from carbon.config import configure_logger, configure_sentry, load_config_values
 from carbon.db import engine
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
 @click.version_option()
-@click.argument("feed_type", type=click.Choice(["people", "articles"]))
-@click.option("--db", envvar="CARBON_DB", help="Database connection string")
-@click.option("-o", "--out", help="Output file", type=click.File("wb"))
-@click.option(
-    "--ftp",
-    is_flag=True,
-    help="Send output to FTP server; do not use this with the -o/--out option",
-)
-@click.option(
-    "--ftp-host",
-    envvar="FTP_HOST",
-    help="Hostname of FTP server",
-    default="localhost",
-    show_default=True,
-)
-@click.option(
-    "--ftp-port",
-    envvar="FTP_PORT",
-    help="FTP server port",
-    default=21,
-    show_default=True,
-)
-@click.option("--ftp-user", envvar="FTP_USER", help="FTP username")
-@click.option("--ftp-pass", envvar="FTP_PASS", help="FTP password")
-@click.option("--ftp-path", envvar="FTP_PATH", help="Full path to file on FTP server")
-@click.option(
-    "--secret-id",
-    help="AWS Secrets id containing DB connection "
-    "string and FTP password. If given, will "
-    "override other command line options.",
-)
-@click.option(
-    "--sns-topic",
-    help="AWS SNS Topic ARN. If given, a message "
-    "will be sent when the load begins and "
-    "then another message will be sent with "
-    "the outcome of the load.",
-)
-@sns_log
-def main(
-    feed_type: str,
-    db: str,
-    out: IO,
-    ftp_host: str,
-    ftp_port: int,
-    ftp_user: str,
-    ftp_pass: str,
-    ftp_path: str,
-    secret_id: str,
-    sns_topic: str,  # noqa: ARG001
-    *,
-    ftp: bool,
-) -> None:
+def main() -> None:
     """Generate feeds for Symplectic Elements.
 
     Specify which FEED_TYPE should be generated. This should be either
@@ -83,26 +32,24 @@ def main(
     server. The server should support FTP over TLS. Only one of -o/--out or
     --ftp should be used.
     """
-    cfg = Config(
-        CARBON_DB=db,
-        FTP_USER=ftp_user,
-        FTP_PASS=ftp_pass,
-        FTP_PATH=ftp_path,
-        FTP_HOST=ftp_host,
-        FTP_PORT=ftp_port,
-    )
-    configure_sentry()
+    config_values = load_config_values()
+    sns_log(config_values=config_values, status="start")
 
-    if secret_id is not None:
-        client = boto3.client("secretsmanager")
-        secret = client.get_secret_value(SecretId=secret_id)
-        secret_env = json.loads(secret["SecretString"])
-        cfg.update(secret_env)
+    try:
+        root_logger = logging.getLogger()
+        logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
+        configure_sentry()
+        logger.info(
+            "Carbon config settings loaded for environment: %s",
+            config_values["WORKSPACE"],
+        )
 
-    engine.configure(cfg["CARBON_DB"])
-    if ftp:
-        click.echo(f"Starting carbon run for {feed_type}")
-        FTPFeeder({"feed_type": feed_type}, cfg).run()
-        click.echo(f"Finished carbon run for {feed_type}")
+        engine.configure(config_values["CONNECTION_STRING"])
+
+        click.echo(f"Starting carbon run for {config_values['FEED_TYPE']}")
+        FTPFeeder({"feed_type": config_values["FEED_TYPE"]}, config_values).run()
+        click.echo(f"Finished carbon run for {config_values['FEED_TYPE']}")
+    except RuntimeError:
+        sns_log(config_values=config_values, status="fail")
     else:
-        Writer(out=out).write(feed_type)
+        sns_log(config_values=config_values, status="success")

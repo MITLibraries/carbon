@@ -1,17 +1,16 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 import threading
 from contextlib import closing, contextmanager
 from datetime import UTC, datetime
 from ftplib import FTP, FTP_TLS  # nosec
-from functools import partial, update_wrapper
+from functools import partial
 from typing import IO, TYPE_CHECKING, Any
 
 import boto3
-import click
-from click import Context
 from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
@@ -22,6 +21,7 @@ if TYPE_CHECKING:
     from socket import socket
     from ssl import SSLContext
 
+logger = logging.getLogger(__name__)
 
 AREAS = (
     "ARCHITECTURE & PLANNING AREA",
@@ -455,15 +455,6 @@ def _add_person(xf: IO, person: dict[str, Any]) -> None:
     xf.write(record)
 
 
-class Config(dict):
-    @classmethod
-    def from_env(cls) -> Config:
-        cfg = cls()
-        for var in ENV_VARS:
-            cfg[var] = os.environ.get(var)
-        return cfg
-
-
 class FTPFeeder:
     def __init__(
         self,
@@ -481,64 +472,51 @@ class FTPFeeder:
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
             ftp_rdr = FTPReader(
                 fp_r,
-                self.config["FTP_USER"],
-                self.config["FTP_PASS"],
-                self.config["FTP_PATH"],
-                self.config["FTP_HOST"],
-                int(self.config["FTP_PORT"]),
+                self.config["SYMPLECTIC_FTP_USER"],
+                self.config["SYMPLECTIC_FTP_PASS"],
+                self.config["SYMPLECTIC_FTP_PATH"],
+                self.config["SYMPLECTIC_FTP_HOST"],
+                int(self.config["SYMPLECTIC_FTP_PORT"]),
                 self.ssl_ctx,
             )
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
 
 
-def sns_log(f: Callable) -> Callable:
-    """AWS SNS log decorator for wrapping a click command.
+def sns_log(
+    config_values: dict[str, Any], status: str, error: Exception | None = None
+) -> None:
+    sns_client = boto3.client("sns")
+    sns_id = config_values.get("SNS_TOPIC")
+    stage = config_values.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
+    feed = config_values.get("FEED_TYPE", "")
 
-    This can be used as a decorator for a click command. It will wrap
-    execution of the click command in a try/except so that any exception
-    can be logged to the SNS topic before being re-raised.
-    """
-    msg_start = "[{}] Starting carbon run for the {} feed in the {} environment."
-    msg_success = "[{}] Finished carbon run for the {} feed in the {} environment."
-    msg_fail = (
-        "[{}] The following problem was encountered during the "
-        "carbon run for the {} feed in the {} environment:\n\n"
-        "{}"
-    )
-
-    @click.pass_context
-    def wrapped(ctx: Context, *args: str, **kwargs: str) -> Callable:
-        sns_id = ctx.params.get("sns_topic")
-        if sns_id:
-            client = boto3.client("sns")
-            stage = ctx.params.get("ftp_path", "").lstrip("/").split("/")[0]
-            feed = ctx.params.get("feed_type", "")
-            client.publish(
-                TopicArn=sns_id,
-                Subject="Carbon run",
-                Message=msg_start.format(datetime.now(tz=UTC).isoformat(), feed, stage),
-            )
-            try:
-                res = ctx.invoke(f, *args, **kwargs)
-            except Exception as e:
-                client.publish(
-                    TopicArn=sns_id,
-                    Subject="Carbon run",
-                    Message=msg_fail.format(
-                        datetime.now(tz=UTC).isoformat(), feed, stage, e
-                    ),
-                )
-                raise
-            else:
-                client.publish(
-                    TopicArn=sns_id,
-                    Subject="Carbon run",
-                    Message=msg_success.format(
-                        datetime.now(tz=UTC).isoformat(), feed, stage
-                    ),
-                )
-        else:
-            res = ctx.invoke(f, *args, **kwargs)
-        return res
-
-    return update_wrapper(wrapped, f)
+    if status == "start":
+        sns_client.publish(
+            TopicArn=sns_id,
+            Subject="Carbon run",
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] Starting carbon run for the "
+                f"{feed} feed in the {stage} environment."
+            ),
+        )
+    elif status == "success":
+        sns_client.publish(
+            TopicArn=sns_id,
+            Subject="Carbon run",
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] Finished carbon run for the "
+                f"{feed} feed in the {stage} environment."
+            ),
+        )
+        logger.info("Carbon run has successfully completed.")
+    elif status == "fail":
+        sns_client.publish(
+            TopicArn=sns_id,
+            Subject="Carbon run",
+            Message=(
+                f"[{datetime.now(tz=UTC).isoformat()}] The following problem was "
+                f"encountered during the carbon run for the {feed} feed "
+                f"in the {stage} environment: {error}."
+            ),
+        )
+        logger.info("Carbon run has failed.")
