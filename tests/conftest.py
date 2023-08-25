@@ -24,7 +24,8 @@ def _app_init():
 
 
 @pytest.fixture(autouse=True)
-def _test_env():
+def _test_env(ftp_server):
+    ftp_socket, ftp_directory = ftp_server
     os.environ["FEED_TYPE"] = "test_feed_type"
     os.environ["LOG_LEVEL"] = "INFO"
     os.environ["SENTRY_DSN"] = "None"
@@ -34,7 +35,7 @@ def _test_env():
     os.environ["SYMPLECTIC_FTP_PATH"] = "/people.xml"
     os.environ["SYMPLECTIC_FTP_JSON"] = (
         '{"SYMPLECTIC_FTP_HOST": "localhost", '
-        '"SYMPLECTIC_FTP_PORT": "test_symplectic_ftp_port",'
+        f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
         '"SYMPLECTIC_FTP_USER": "user", '
         '"SYMPLECTIC_FTP_PASS": "pass"}'
     )

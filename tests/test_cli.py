@@ -23,24 +23,12 @@ def runner():
 def test_people_returns_people(
     feed_type,
     symplectic_ftp_path,
-    monkeypatch,
     runner,
     people_data,
     ftp_server,
     stubbed_sns_client,
 ):
     ftp_socket, ftp_directory = ftp_server
-    os.environ["FEED_TYPE"] = feed_type
-    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
-    monkeypatch.setenv(
-        "SYMPLECTIC_FTP_JSON",
-        (
-            '{"SYMPLECTIC_FTP_HOST": "localhost", '
-            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
-            '"SYMPLECTIC_FTP_USER": "user", '
-            '"SYMPLECTIC_FTP_PASS": "pass"}'
-        ),
-    )
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -64,24 +52,12 @@ def test_people_returns_people(
 def test_articles_returns_articles(
     feed_type,
     symplectic_ftp_path,
-    monkeypatch,
     runner,
     articles_data,
     ftp_server,
     stubbed_sns_client,
 ):
     ftp_socket, ftp_directory = ftp_server
-    os.environ["FEED_TYPE"] = feed_type
-    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
-    monkeypatch.setenv(
-        "SYMPLECTIC_FTP_JSON",
-        (
-            '{"SYMPLECTIC_FTP_HOST": "localhost", '
-            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
-            '"SYMPLECTIC_FTP_USER": "user", '
-            '"SYMPLECTIC_FTP_PASS": "pass"}'
-        ),
-    )
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -111,8 +87,7 @@ def test_file_is_ftped(
     stubbed_sns_client,
 ):
     ftp_socket, ftp_directory = ftp_server
-    os.environ["FEED_TYPE"] = feed_type
-    os.environ["SYMPLECTIC_FTP_PATH"] = symplectic_ftp_path
+
     monkeypatch.setenv(
         "SYMPLECTIC_FTP_JSON",
         (
@@ -131,17 +106,7 @@ def test_file_is_ftped(
     assert os.path.exists(os.path.join(ftp_directory, "people.xml"))
 
 
-def test_cli_connection_tests_success(caplog, ftp_server, monkeypatch, runner):
-    ftp_socket, _ = ftp_server
-    monkeypatch.setenv(
-        "SYMPLECTIC_FTP_JSON",
-        (
-            '{"SYMPLECTIC_FTP_HOST": "localhost", '
-            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
-            '"SYMPLECTIC_FTP_USER": "user", '
-            '"SYMPLECTIC_FTP_PASS": "pass"}'
-        ),
-    )
+def test_cli_connection_tests_success(caplog, runner):
     result = runner.invoke(main, ["--run_connection_tests"])
     assert result.exit_code == 0
     assert "Successfully connected to the Data Warehouse" in caplog.text

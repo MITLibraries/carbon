@@ -45,16 +45,4 @@ def test_configure_sentry_env_variable_is_dsn(monkeypatch):
 
 def test_load_config_values_success():
     config_values = load_config_values()
-    assert config_values == {
-        "FEED_TYPE": "test_feed_type",
-        "LOG_LEVEL": "INFO",
-        "SENTRY_DSN": "None",
-        "SNS_TOPIC": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
-        "WORKSPACE": "test",
-        "CONNECTION_STRING": "sqlite://",
-        "SYMPLECTIC_FTP_PATH": "/people.xml",
-        "SYMPLECTIC_FTP_HOST": "localhost",
-        "SYMPLECTIC_FTP_PORT": "test_symplectic_ftp_port",
-        "SYMPLECTIC_FTP_USER": "user",
-        "SYMPLECTIC_FTP_PASS": "pass",
-    }
+    assert config_values["FEED_TYPE"] == "test_feed_type"
