@@ -481,6 +481,32 @@ class FTPFeeder:
             )
             PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
 
+    def run_connection_test(self) -> None:
+        """Test connection to the Symplectic Elements FTP server.
+
+        Verify that the provided FTP credentials can be used
+        to successfully connect to the Symplectic Elements FTP server.
+        """
+        logger.info("Testing connection to the Symplectic Elements FTP server")
+        try:
+            ftps = CarbonCopyFTPS(context=self.ssl_ctx, timeout=30)
+            ftps.connect(
+                self.config["SYMPLECTIC_FTP_HOST"],
+                int(self.config["SYMPLECTIC_FTP_PORT"]),
+            )
+            ftps.login(
+                user=self.config["SYMPLECTIC_FTP_USER"],
+                passwd=self.config["SYMPLECTIC_FTP_PASS"],
+            )
+        except Exception as error:
+            error_message = (
+                f"Failed to connect to the Symplectic Elements FTP server: {error}"
+            )
+            logger.exception(error_message)
+        else:
+            logger.info("Successfully connected to the Symplectic Elements FTP server")
+            ftps.quit()
+
 
 def sns_log(
     config_values: dict[str, Any], status: str, error: Exception | None = None

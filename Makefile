@@ -97,5 +97,5 @@ dist-stage:
 	docker push $(ECR_URL_STAGE):latest
 	docker push $(ECR_URL_STAGE):`git describe --always`
 
-database-connection-test-stage: # use after the Data Warehouse password is changed every year to confirm that the new password works.
-	aws ecs run-task --cluster carbon-ecs-stage --task-definition carbon-ecs-stage-people --launch-type="FARGATE" --region us-east-1 --network-configuration '{"awsvpcConfiguration": {"subnets": ["subnet-05df31ac28dd1a4b0","subnet-04cfa272d4f41dc8a"], "securityGroups": ["sg-0f11e2619db7da196"],"assignPublicIp": "DISABLED"}}' --overrides '{"containerOverrides": [ {"name": "carbon-ecs-stage", "command": ["--database_connection_test"]}]}'
+run-connection-tests-stage: # use after the Data Warehouse password is changed every year to confirm that the new password works.
+	aws ecs run-task --cluster carbon-ecs-stage --task-definition carbon-ecs-stage-people --launch-type="FARGATE" --region us-east-1 --network-configuration '{"awsvpcConfiguration": {"subnets": ["subnet-05df31ac28dd1a4b0","subnet-04cfa272d4f41dc8a"], "securityGroups": ["sg-0f11e2619db7da196"],"assignPublicIp": "DISABLED"}}' --overrides '{"containerOverrides": [ {"name": "carbon-ecs-stage", "command": ["--run_connection_tests"]}]}'

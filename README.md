@@ -12,9 +12,11 @@ Carbon is a tool for generating a feed of people that can be loaded into Symplec
 
 The Data Warehouse runs on an older version of Oracle that necessitates the `thick` mode of python-oracledb, which requires the Oracle Instant Client Library (this app was developed with version 21.9.0.0.0). The test suite uses SQLite, so you can develop and test without connecting to the Data Warehouse.
 
+**Note:** One of the unit tests (`test_cli_connection_tests_fail`) checks that an error message is returned if the app fails to connect to the Data Warehouse. With the current structure of the application, which relies on a single SQLAlchemy engine that is created in `db.py`, this test must be run at the end because it modifies the content of the engine that would cause other tests to fail. This "bug" (not technically a breaking change) will be addressed in later efforts to enhance the Carbon application.
+
 ### With Docker
 
-Note: As of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
+**Note:** As of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
 
 From the project folder:
 
@@ -28,7 +30,7 @@ From the project folder:
 
 5. Run any `make` commands for testing the application.
 
-Any tests that involve connecting to the Data Warehouse will need to be run as an ECS task in `stage`, which requires building and publishing the Docker container image to ECR for the `stage` environment. As noted in step 1, the appropriate AWS credentials for the `stage` must be set to run the commands for building and publishing the Docker container image. The `ECR_NAME_STAGE` and `ECR_URL_STAGE` environment variables must also be set; the values correspond to the 'Repository name' and 'URI' indicated on ECR for the container image, respectively.
+Any tests that involve connecting to the Data Warehouse will need to be run as an ECS task in the `stage` environment, which requires building and publishing the Docker container image to ECR for `stage`. As noted in step 1, the appropriate AWS credentials for `stage` must be set to run the commands for building and publishing the Docker container image. The `ECR_NAME_STAGE` and `ECR_URL_STAGE` environment variables must also be set; the values correspond to the 'Repository name' and 'URI' indicated on ECR for the container image, respectively.
 
 
 ### Without Docker
@@ -39,11 +41,11 @@ Any tests that involve connecting to the Data Warehouse will need to be run as a
 
 ## Connecting to the Data Warehouse
 
-The password for the Data Warehouse is updated each year. To verify that the updated password works, the app must be run as an ECS task in the `stage` environment because Cloudconnector is not enabled in `dev1`. The app can run a database connection test when called with the flag, `--database_connection_test`.
+The password for the Data Warehouse is updated each year. To verify that the updated password works, the app must be run as an ECS task in `stage` because Cloudconnector is not enabled in `dev1`. The app can run a database connection test when called with the flag, `--run_connection_tests`.
 
 1. Export stage credentials and set `ECR_NAME_STAGE` and `ECR_URL_STAGE` env variables.
 2. Run `make install`.
-3. Run `make database-connection-test-stage`.
+3. Run `make run-connection-tests-stage`.
 4. View the logs from the ECS task run on CloudWatch.
    * On CloudWatch, select the `carbon-ecs-stage` log group.
    * Select the most recent log stream.
@@ -64,21 +66,12 @@ Tagging a release on the `main` branch will promote a copy of the `latest` conta
 
 ## Usage
 
-The CLI interface works the same whether running locally or as a container. When running as a container, however, remember that if specifying an output file (rather than stdout) it will go to a file local to the container, not your host system.
+The Carbon application retrieves 'people' records from the Data Warehouse and generates an XML file that is uploaded to the Symplectic Elements FTP server. On Symplectic Elements, a job is scheduled to ingest the data from the XML file to create user accounts.
 
-View the help menu for the `carbon` command::
-
-```bash
-carbon --help
-```
-
-Carbon will generate an XML feed that can be uploaded to Symplectic. The command requires an SQLAlchemy database connection string, a feed type and, optionally, an output file. For connecting to Oracle use `oracle://<username>:<password>@<server>:1521/<sid>`. The database connection string can also be passed by an environment variable named `CARBON_DB`. If no output file is specified, the feed will be printed to stdout.
-
-```bash
-(carbon)$ env CARBON_DB sqlite:///people.db carbon people
-```
+**Note:** The Carbon application can also retrieve 'articles' records, but as of this writing, it is not known whether this feature is still actively used.
 
 ## Required ENV
+
 * `FEED_TYPE` = The type of feed and is set to either "people" or "articles".
 * `CONNECTION_STRING` = The connection string of the form `oracle://<username>:<password>@<server>:1521/<sid>` for the Data Warehouse.
 * `SNS_TOPIC` = The ARN for the SNS topic used for sending email notifications.
