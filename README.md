@@ -10,27 +10,45 @@ Carbon is a tool for generating a feed of people that can be loaded into Symplec
 * To lint the repo: `make lint`
 * To run the app: `pipenv run carbon --help`
 
-The Data Warehouse runs on a older version of Oracle that necessitates the thick mode of python-oracledb which requires the Oracle Instant Client Library (this app was developed with version 21.9.0.0.0.). The test suite uses SQLite, so you can develop and test without connecting to the Data Warehouse.
-
-If you do need to connect to the data warehouse, you have two options, one using Docker and one without.
+The Data Warehouse runs on an older version of Oracle that necessitates the `thick` mode of python-oracledb, which requires the Oracle Instant Client Library (this app was developed with version 21.9.0.0.0). The test suite uses SQLite, so you can develop and test without connecting to the Data Warehouse.
 
 ### With Docker
 
-Note: as of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
+Note: As of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
 
 From the project folder:
 
-1. Run `make dependencies` with appropriate AWS credentials.
+1. Export AWS credentials for the `dev1` environment.
 
-2. Run `make dist-dev` to build the container.
+2. Run `make dependencies` to download the Oracle Instant Client from S3.
 
-3. Run `docker run carbon-dev:latest`.
+3. Run `make dist-dev` to build the Docker container image.
+
+4. Run `make publish-dev` to push the Docker container image to ECR for the `dev1` environment. 
+
+5. Run any `make` commands for testing the application.
+
+Any tests that involve connecting to the Data Warehouse will need to be run as an ECS task in `stage`, which requires building and publishing the Docker container image to ECR for the `stage` environment. As noted in step 1, the appropriate AWS credentials for the `stage` must be set to run the commands for building and publishing the Docker container image. The `ECR_NAME_STAGE` and `ECR_URL_STAGE` environment variables must also be set; the values correspond to the 'Repository name' and 'URI' indicated on ECR for the container image, respectively.
+
 
 ### Without Docker
 
-1. Download Oracle Instant Client (basiclite is sufficient) and set the ORACLE_LIB_DIR env variable.
+1. Download Oracle Instant Client (basiclite is sufficient) and set the `ORACLE_LIB_DIR` env variable.
 
-2. Run pipenv run patronload.
+2. Run `pipenv run carbon`.
+
+## Connecting to the Data Warehouse
+
+The password for the Data Warehouse is updated each year. To verify that the updated password works, the app must be run as an ECS task in the `stage` environment because Cloudconnector is not enabled in `dev1`. The app can run a database connection test when called with the flag, `--database_connection_test`.
+
+1. Export stage credentials and set `ECR_NAME_STAGE` and `ECR_URL_STAGE` env variables.
+2. Run `make install`.
+3. Run `make database-connection-test-stage`.
+4. View the logs from the ECS task run on CloudWatch.
+   * On CloudWatch, select the `carbon-ecs-stage` log group.
+   * Select the most recent log stream.
+   * Verify that the following log is included:
+      > Successfully connected to the Data Warehouse: \<VERSION NUMBER\>
 
 ## Deploying
 
