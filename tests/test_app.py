@@ -8,7 +8,7 @@ from lxml import etree as ET
 
 from carbon.app import (
     NSMAP,
-    FTPReader,
+    FtpFileWriter,
     PipeWriter,
     Writer,
     add_child,
@@ -19,9 +19,9 @@ from carbon.app import (
     ns,
     people,
     person_feed,
-    sns_log,
 )
 from carbon.config import load_config_values
+from carbon.helpers import sns_log
 
 pytestmark = pytest.mark.usefixtures("_load_data")
 
@@ -100,7 +100,7 @@ def test_pipewriter_writes_person_feed(reader):
     with open(r, "rb") as fr, open(w, "wb") as fw:
         wtr = PipeWriter(fw)
         rdr = reader(fr)
-        wtr.pipe(rdr).write("people")
+        wtr.connect(rdr).write("people")
     xml = ET.XML(rdr.data)
     xp = xml.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
@@ -112,7 +112,13 @@ def test_pipewriter_writes_person_feed(reader):
 def test_ftpreader_sends_file(ftp_server_wrapper):
     s, d = ftp_server_wrapper
     b = BytesIO(b"Storin' some bits in the FTPz")
-    ftp = FTPReader(b, "user", "pass", "/warez", port=s[1])
+    ftp = FtpFileWriter(
+        content_feed=b,
+        user="user",
+        password="pass",  # noqa: S106
+        path="/warez",
+        port=s[1],
+    )
     ftp()
     with open(os.path.join(d, "warez")) as fp:
         assert fp.read() == "Storin' some bits in the FTPz"

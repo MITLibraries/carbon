@@ -5,12 +5,11 @@ import os
 import re
 import threading
 from contextlib import closing, contextmanager
-from datetime import UTC, datetime
+from datetime import datetime
 from ftplib import FTP, FTP_TLS  # nosec
 from functools import partial
 from typing import IO, TYPE_CHECKING, Any
 
-import boto3
 from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
@@ -234,134 +233,6 @@ def add_child(
     return child
 
 
-class Writer:
-    """A Symplectic Elements feed writer.
-
-    Use this class to generate and output an HR or AA feed for Symplectic
-    Elements.
-    """
-
-    def __init__(self, out: IO):
-        self.out = out
-
-    def write(self, feed_type: str) -> None:
-        """Write the specified feed type to the configured output."""
-        if feed_type == "people":
-            with person_feed(self.out) as f:
-                for person in people():
-                    f(person)
-        elif feed_type == "articles":
-            with article_feed(self.out) as f:
-                for article in articles():
-                    f(article)
-
-
-class PipeWriter(Writer):
-    """A read/write :class:`carbon.app.Writer`.
-
-    This class is intended to provide a buffered read/write connecter. The
-    :meth:`~carbon.app.PipeWriter.pipe` method should be called before
-    writing to configure the reader end. For example::
-
-        PipeWriter(fp_out).pipe(reader).write('people')
-
-    See :class:`carbon.app.FTPReader` for an example reader.
-    """
-
-    def write(self, feed_type: str) -> None:
-        """Concurrently read/write from the configured inputs and outputs.
-
-        This method will block until both the reader and writer are finished.
-        """
-        pipe = threading.Thread(target=self._reader)
-        pipe.start()
-        super().write(feed_type)
-        self.out.close()
-        pipe.join()
-
-    def pipe(self, reader: FTPReader) -> PipeWriter:
-        """Connect the read end of the pipe.
-
-        This should be called before :meth:`~carbon.app.PipeWriter.write`.
-        """
-        self._reader = reader
-        return self
-
-
-class CarbonCopyFTPS(FTP_TLS):
-    """FTP_TLS subclass with support for SSL session reuse.
-
-    The stdlib version of FTP_TLS creates a new SSL session for data
-    transfer commands. This results in a cryptic OpenSSL error message
-    when a server requires SSL session reuse. The ntransfercmd here takes
-    advantage of the new session parameter to wrap_socket that was added
-    in 3.6.
-
-    Additionally, in the stdlib, storbinary destroys the SSL session after
-    transfering the file. Since the session has been shared with the
-    command connection, OpenSSL will once again generate a cryptic error
-    message for subsequent commands. The modified storbinary method here
-    removes the unwrap call. Calling quit on the ftp connection should
-    still cleanly shutdown the connection.
-    """
-
-    def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
-        conn, size = FTP.ntransfercmd(self, cmd, rest)
-        if self._prot_p:  # type: ignore[attr-defined]
-            conn = self.context.wrap_socket(
-                conn, server_hostname=self.host, session=self.sock.session  # type: ignore[union-attr] # noqa: E501
-            )
-        return conn, size
-
-    def storbinary(
-        self,
-        cmd: str,
-        fp: IO,  # type: ignore[override]
-        blocksize: int = 8192,
-        callback: Callable | None = None,
-        rest: str | None = None,  # type: ignore[override]
-    ) -> str:
-        self.voidcmd("TYPE I")
-        with self.transfercmd(cmd, rest) as conn:
-            while 1:
-                buf = fp.read(blocksize)
-                if not buf:
-                    break
-                conn.sendall(buf)
-                if callback:
-                    callback(buf)
-        return self.voidresp()
-
-
-class FTPReader:
-    def __init__(
-        self,
-        fp: IO,
-        user: str,
-        passwd: str,
-        path: str,
-        host: str = "localhost",
-        port: int = 21,
-        ctx: SSLContext | None = None,
-    ):
-        self.fp = fp
-        self.user = user
-        self.passwd = passwd
-        self.path = path
-        self.host = host
-        self.port = port
-        self.ctx = ctx
-
-    def __call__(self) -> None:
-        """Transfer a file using FTP over TLS."""
-        ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
-        ftps.connect(self.host, self.port)
-        ftps.login(self.user, self.passwd)
-        ftps.prot_p()
-        ftps.storbinary("STOR " + self.path, self.fp)
-        ftps.quit()
-
-
 @contextmanager
 def person_feed(out: IO) -> Generator:
     """Generate XML feed of people.
@@ -455,7 +326,168 @@ def _add_person(xf: IO, person: dict[str, Any]) -> None:
     xf.write(record)
 
 
-class FTPFeeder:
+class CarbonCopyFTPS(FTP_TLS):
+    """FTP_TLS subclass with support for SSL session reuse.
+
+    The stdlib version of FTP_TLS creates a new SSL session for data
+    transfer commands. This results in a cryptic OpenSSL error message
+    when a server requires SSL session reuse. The ntransfercmd here takes
+    advantage of the new session parameter to wrap_socket that was added
+    in 3.6.
+
+    Additionally, in the stdlib, storbinary destroys the SSL session after
+    transfering the file. Since the session has been shared with the
+    command connection, OpenSSL will once again generate a cryptic error
+    message for subsequent commands. The modified storbinary method here
+    removes the unwrap call. Calling quit on the ftp connection should
+    still cleanly shutdown the connection.
+    """
+
+    def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
+        conn, size = FTP.ntransfercmd(self, cmd, rest)
+        if self._prot_p:  # type: ignore[attr-defined]
+            conn = self.context.wrap_socket(
+                conn, server_hostname=self.host, session=self.sock.session  # type: ignore[union-attr] # noqa: E501
+            )
+        return conn, size
+
+    def storbinary(
+        self,
+        cmd: str,
+        fp: IO,  # type: ignore[override]
+        blocksize: int = 8192,
+        callback: Callable | None = None,
+        rest: str | None = None,  # type: ignore[override]
+    ) -> str:
+        self.voidcmd("TYPE I")
+        with self.transfercmd(cmd, rest) as conn:
+            while 1:
+                buf = fp.read(blocksize)
+                if not buf:
+                    break
+                conn.sendall(buf)
+                if callback:
+                    callback(buf)
+        return self.voidresp()
+
+
+class Writer:
+    """A Symplectic Elements feed writer.
+
+    Use this class to generate and output an HR or AA feed for Symplectic
+    Elements.
+    """
+
+    def __init__(self, out: IO):
+        self.out = out
+
+    def write(self, feed_type: str) -> None:
+        """Write the specified feed type to the configured output."""
+        if feed_type == "people":
+            with person_feed(self.out) as f:
+                for person in people():
+                    f(person)
+        elif feed_type == "articles":
+            with article_feed(self.out) as f:
+                for article in articles():
+                    f(article)
+
+
+class PipeWriter(Writer):
+    """A read/write :class:`carbon.app.Writer`.
+
+    This class is intended to provide a buffered read/write connecter. The
+    :meth:`~carbon.app.PipeWriter.pipe` method should be called before
+    writing to configure the reader end. For example::
+
+        PipeWriter(fp_out).pipe(reader).write('people')
+
+    See :class:`carbon.app.FTPReader` for an example reader.
+    """
+
+    def write(self, feed_type: str) -> None:
+        """Concurrently read/write from the configured inputs and outputs.
+
+        This method will block until both the reader and writer are finished.
+        """
+        pipe = threading.Thread(target=self._reader)
+        pipe.start()
+        super().write(feed_type)
+        self.out.close()
+        pipe.join()
+
+    def connect(self, reader: FtpFileWriter) -> PipeWriter:
+        """Connect the read end of the pipe.
+
+        This should be called before :meth:`~carbon.app.PipeWriter.write`.
+        """
+        self._reader = reader
+        return self
+
+
+class FtpFileWriter:
+    """A file writer for the Symplectic Elements FTP server.
+
+    The FtpFileWriter will read data from a provided feed and write the contents
+    from the feed to a file on the Symplectic Elements FTP server.
+
+    Attributes:
+        content_feed: A file-like object (stream) that contains the records
+            from the Data Warehouse.
+        user: The username for accessing the Symplectic FTP server.
+        password: The password for accessing the Symplectic FTP server.
+        path: The full file path to the XML file (including the file name) that is
+            uploaded to the Symplectic FTP server.
+        host: The hostname of the Symplectic FTP server.
+        port: The port of the Symplectic FTP server.
+    """
+
+    def __init__(
+        self,
+        content_feed: IO,
+        user: str,
+        password: str,
+        path: str,
+        host: str = "localhost",
+        port: int = 21,
+        ctx: SSLContext | None = None,
+    ):
+        self.content_feed = content_feed
+        self.user = user
+        self.password = password
+        self.path = path
+        self.host = host
+        self.port = port
+        self.ctx = ctx
+
+    def __call__(self) -> None:
+        """Transfer a file using FTP over TLS."""
+        ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
+        ftps.connect(host=self.host, port=self.port)
+        ftps.login(user=self.user, passwd=self.password)
+        ftps.prot_p()
+        ftps.storbinary(cmd=f"STOR {self.path}", fp=self.content_feed)
+        ftps.quit()
+
+
+class DatabaseToFtpPipe:
+    """A pipe feeding data from the Data Warehouse to the Symplectic Elements FTP server.
+
+    The feed consists of a pipe that connects 'read' and 'write' file-like objects
+    (streams) that allows for one-way passing of information to each other. The flow of
+    data is as follows:
+
+        1. The records from the Data Warehouse are transformed into normalized
+           XML strings and are concurrently written to the 'write' file stream
+           one record at a time.
+
+        2. The connected 'read' file stream concurrently transfers data from the
+           'write' file stream into an XML file on the Elements FTP server.
+
+    Attributes:
+        config: A dictionary of required environment variables for running the feed.
+    """
+
     def __init__(
         self,
         event: dict[str, str],
@@ -470,7 +502,7 @@ class FTPFeeder:
         r, w = os.pipe()
         feed_type = self.event["feed_type"]
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
-            ftp_rdr = FTPReader(
+            ftp_file_writer = FtpFileWriter(
                 fp_r,
                 self.config["SYMPLECTIC_FTP_USER"],
                 self.config["SYMPLECTIC_FTP_PASS"],
@@ -479,7 +511,7 @@ class FTPFeeder:
                 int(self.config["SYMPLECTIC_FTP_PORT"]),
                 self.ssl_ctx,
             )
-            PipeWriter(out=fp_w).pipe(ftp_rdr).write(feed_type)
+            PipeWriter(out=fp_w).connect(reader=ftp_file_writer).write(feed_type)
 
     def run_connection_test(self) -> None:
         """Test connection to the Symplectic Elements FTP server.
@@ -506,43 +538,3 @@ class FTPFeeder:
         else:
             logger.info("Successfully connected to the Symplectic Elements FTP server")
             ftps.quit()
-
-
-def sns_log(
-    config_values: dict[str, Any], status: str, error: Exception | None = None
-) -> None:
-    sns_client = boto3.client("sns")
-    sns_id = config_values.get("SNS_TOPIC")
-    stage = config_values.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
-    feed = config_values.get("FEED_TYPE", "")
-
-    if status == "start":
-        sns_client.publish(
-            TopicArn=sns_id,
-            Subject="Carbon run",
-            Message=(
-                f"[{datetime.now(tz=UTC).isoformat()}] Starting carbon run for the "
-                f"{feed} feed in the {stage} environment."
-            ),
-        )
-    elif status == "success":
-        sns_client.publish(
-            TopicArn=sns_id,
-            Subject="Carbon run",
-            Message=(
-                f"[{datetime.now(tz=UTC).isoformat()}] Finished carbon run for the "
-                f"{feed} feed in the {stage} environment."
-            ),
-        )
-        logger.info("Carbon run has successfully completed.")
-    elif status == "fail":
-        sns_client.publish(
-            TopicArn=sns_id,
-            Subject="Carbon run",
-            Message=(
-                f"[{datetime.now(tz=UTC).isoformat()}] The following problem was "
-                f"encountered during the carbon run for the {feed} feed "
-                f"in the {stage} environment: {error}."
-            ),
-        )
-        logger.info("Carbon run has failed.")
