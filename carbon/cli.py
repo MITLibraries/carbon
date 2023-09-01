@@ -20,9 +20,9 @@ def main(*, run_connection_tests: bool) -> None:
     The feed uses a SQLAlchemy engine to connect to the Data Warehouse. A query is
     submitted to the Data Warehouse to retrieve either 'people' or 'articles' records
     depending on the 'FEED_TYPE' environment variable. Several transforms are applied
-    to normalize the records before it is converted to an XML-formatted string.
+    to normalize the records before it is converted to an XML string.
     The feed builds a pipe that will concurrently read data from the Data Warehouse
-    and write the normalized, XML-formatted string to an XML file on the Elements
+    and write the normalized XML string to an XML file on the Elements
     FTP server. For security purposes, the server should support FTP over TLS.
 
     [wip] By default, the feed will write to an XML file on the Elements FTP server.

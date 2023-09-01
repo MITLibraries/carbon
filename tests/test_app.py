@@ -7,7 +7,6 @@ from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.app import (
-    NSMAP,
     FtpFileWriter,
     PipeWriter,
     Writer,
@@ -16,7 +15,6 @@ from carbon.app import (
     articles,
     group_name,
     initials,
-    ns,
     people,
     person_feed,
 )
@@ -24,43 +22,54 @@ from carbon.config import load_config_values
 from carbon.helpers import sns_log
 
 pytestmark = pytest.mark.usefixtures("_load_data")
+symplectic_elements_namespace = "http://www.symplectic.co.uk/hrimporter"
+qualified_tag_name = ET.QName(symplectic_elements_namespace, tag="records")
+nsmap = {None: symplectic_elements_namespace}
 
 
 def test_people_generates_people():
-    peeps = list(people())
-    person = peeps[0]
+    people_records = list(people())
+    person = people_records[0]
     assert person["KRB_NAME_UPPERCASE"] == "FOOBAR"
-    person = peeps[1]
+    person = people_records[1]
     assert person["KRB_NAME_UPPERCASE"] == "THOR"
 
 
 def test_people_adds_orcids():
-    peeps = list(people())
-    assert peeps[0]["ORCID"] == "http://example.com/1"
+    people_records = list(people())
+    assert people_records[0]["ORCID"] == "http://example.com/1"
 
 
-def test_people_excludes_no_emails():
-    peeps = list(people())
-    no_email = [x for x in peeps if x["EMAIL_ADDRESS"] is not None]
-    assert len(no_email) == len(peeps)
+def test_people_excludes_records_without_email():
+    people_records = list(people())
+    people_without_emails = [
+        person for person in people_records if person["EMAIL_ADDRESS"] is None
+    ]
+    assert len(people_without_emails) == 0
 
 
-def test_people_excludes_no_lastname():
-    peeps = list(people())
-    no_email = [x for x in peeps if x["LAST_NAME"] is not None]
-    assert len(no_email) == len(peeps)
+def test_people_excludes_records_without_last_name():
+    people_records = list(people())
+    people_without_last_names = [
+        person for person in people_records if person["LAST_NAME"] is None
+    ]
+    assert len(people_without_last_names) == 0
 
 
-def test_people_excludes_no_kerberos():
-    peeps = list(people())
-    no_email = [x for x in peeps if x["KRB_NAME_UPPERCASE"] is not None]
-    assert len(no_email) == len(peeps)
+def test_people_excludes_records_without_kerberos():
+    people_records = list(people())
+    people_without_kerberos = [
+        person for person in people_records if person["KRB_NAME_UPPERCASE"] is None
+    ]
+    assert len(people_without_kerberos) == 0
 
 
-def test_people_excludes_no_mitid():
-    peeps = list(people())
-    no_email = [x for x in peeps if x["MIT_ID"] is not None]
-    assert len(no_email) == len(peeps)
+def test_people_excludes_records_without_mit_id():
+    people_records = list(people())
+    people_without_mit_id = [
+        person for person in people_records if person["MIT_ID"] is None
+    ]
+    assert len(people_without_mit_id) == 0
 
 
 def test_initials_returns_first_and_middle():
@@ -76,9 +85,11 @@ def test_initials_returns_first_and_middle():
     assert initials("F. M.", "Laxdæla") == "F M L"
 
 
-def test_add_child_adds_child_element(e):
-    xml = e.records(e.record("foobar", {"baz": "bazbar"}))
-    element = ET.Element(ns("records"), nsmap=NSMAP)
+def test_add_child_adds_child_element(people_element_maker):
+    xml = people_element_maker.records(
+        people_element_maker.record("foobar", {"baz": "bazbar"})
+    )
+    element = ET.Element(_tag=qualified_tag_name, nsmap=nsmap)
     add_child(element, "record", "foobar", baz="bazbar")
     assert ET.tostring(element) == ET.tostring(xml)
 
@@ -96,12 +107,14 @@ def test_writer_writes_person_feed():
 
 
 def test_pipewriter_writes_person_feed(reader):
-    r, w = os.pipe()
-    with open(r, "rb") as fr, open(w, "wb") as fw:
-        wtr = PipeWriter(fw)
-        rdr = reader(fr)
-        wtr.connect(rdr).write("people")
-    xml = ET.XML(rdr.data)
+    read_file, write_file = os.pipe()
+    with open(read_file, "rb") as buffered_reader, open(
+        write_file, "wb"
+    ) as buffered_writer:
+        file = reader(buffered_reader)
+        writer = PipeWriter(input_file=buffered_writer, ftp_output_file=file)
+        writer.write("people")
+    xml = ET.XML(file.data)
     xp = xml.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
         namespaces={"s": "http://www.symplectic.co.uk/hrimporter"},
@@ -109,19 +122,19 @@ def test_pipewriter_writes_person_feed(reader):
     assert xp[1].text == "Þorgerðr"
 
 
-def test_ftpreader_sends_file(ftp_server_wrapper):
+def test_ftp_file_writer_sends_file(ftp_server_wrapper):
     s, d = ftp_server_wrapper
-    b = BytesIO(b"Storin' some bits in the FTPz")
+    b = BytesIO(b"File uploaded to FTP server.")
     ftp = FtpFileWriter(
         content_feed=b,
         user="user",
         password="pass",  # noqa: S106
-        path="/warez",
+        path="/DEV",
         port=s[1],
     )
     ftp()
-    with open(os.path.join(d, "warez")) as fp:
-        assert fp.read() == "Storin' some bits in the FTPz"
+    with open(os.path.join(d, "DEV")) as fp:
+        assert fp.read() == "File uploaded to FTP server."
 
 
 def test_person_feed_uses_namespace():
@@ -132,36 +145,32 @@ def test_person_feed_uses_namespace():
     assert root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
 
 
-def test_person_feed_adds_person(records, xml_records, e):
-    b = BytesIO()
-    xml = e.records(xml_records[0])
-    r = records[0]["person"].copy()
-    r.update(records[0]["orcid"])
-    r.update(records[0]["dlc"])
-    with person_feed(b) as f:
-        f(r)
-    xml = ET.XML(b.getvalue())
-    xp = xml.xpath(
+def test_person_feed_adds_person(people_records):
+    output_file = BytesIO()
+    record = people_records[0]["person"].copy()
+    record |= people_records[0]["orcid"] | people_records[0]["dlc"]
+    with person_feed(output_file) as f:
+        f(record)
+    person_element = ET.XML(output_file.getvalue())
+    person_first_name_xpath = person_element.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
         namespaces={"s": "http://www.symplectic.co.uk/hrimporter"},
     )
-    assert xp[0].text == "Foobar"
+    assert person_first_name_xpath[0].text == "Foobar"
 
 
-def test_person_feed_uses_utf8_encoding(records, xml_records, e):
-    b = BytesIO()
-    xml = e.records(xml_records[1])
-    r = records[1]["person"].copy()
-    r.update(records[1]["orcid"])
-    r.update(records[1]["dlc"])
-    with person_feed(b) as f:
-        f(r)
-    xml = ET.XML(b.getvalue())
-    xp = xml.xpath(
+def test_person_feed_uses_utf8_encoding(people_records):
+    output_file = BytesIO()
+    record = people_records[1]["person"].copy()
+    record |= people_records[1]["orcid"] | people_records[1]["dlc"]
+    with person_feed(output_file) as f:
+        f(record)
+    person_element = ET.XML(output_file.getvalue())
+    person_first_name_xpath = person_element.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
         namespaces={"s": "http://www.symplectic.co.uk/hrimporter"},
     )
-    assert xp[0].text == "Þorgerðr"
+    assert person_first_name_xpath[0].text == "Þorgerðr"
 
 
 def test_group_name_adds_faculty():
@@ -174,22 +183,22 @@ def test_group_name_adds_non_faculty():
 
 
 def test_articles_generates_articles():
-    arts = list(articles())
-    assert "Yawning Abyss of Chaos" in arts[0]["ARTICLE_TITLE"]
+    articles_records = list(articles())
+    assert "Yawning Abyss of Chaos" in articles_records[0]["ARTICLE_TITLE"]
 
 
-def test_article_feed_adds_article(aa_data, articles_data):
-    b = BytesIO()
-    with article_feed(b) as f:
-        f(aa_data[0])
-    assert b.getvalue() == ET.tostring(
-        articles_data, encoding="UTF-8", xml_declaration=True
+def test_article_feed_adds_article(articles_records, articles_element):
+    output_file = BytesIO()
+    with article_feed(output_file) as f:
+        f(articles_records[0])
+    assert output_file.getvalue() == ET.tostring(
+        articles_element, encoding="UTF-8", xml_declaration=True
     )
 
 
 def test_articles_skips_articles_without_required_fields():
-    arts = list(articles())
-    assert len(arts) == 1
+    articles_records = list(articles())
+    assert len(articles_records) == 1
 
 
 @freeze_time("2023-08-18")

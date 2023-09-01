@@ -1,5 +1,4 @@
 import logging
-import os
 from typing import Any
 
 from sqlalchemy import (
@@ -18,10 +17,7 @@ from sqlalchemy import (
 
 logger = logging.getLogger(__name__)
 
-os.environ["NLS_LANG"] = "AMERICAN_AMERICA.UTF8"
-
 metadata = MetaData()
-
 
 persons = Table(
     "HR_PERSON_EMPLOYEE_LIMITED",
@@ -53,14 +49,12 @@ dlcs = Table(
     Column("HR_ORG_LEVEL5_NAME", String),
 )
 
-
 orcids = Table(
     "ORCID_TO_MITID",
     metadata,
     Column("MIT_ID", String, ForeignKey("HR_PERSON_EMPLOYEE_LIMITED.MIT_ID")),
     Column("ORCID", String),
 )
-
 
 aa_articles = Table(
     "AA_ARTICLE",

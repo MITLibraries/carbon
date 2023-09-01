@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 import threading
 from contextlib import closing, contextmanager
 from datetime import datetime
@@ -14,6 +13,7 @@ from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
 from carbon.database import aa_articles, dlcs, engine, orcids, persons
+from carbon.helpers import group_name, hire_date_string, initials
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# variables used in query for retrieving 'people' records
 AREAS = (
     "ARCHITECTURE & PLANNING AREA",
     "ENGINEERING AREA",
@@ -96,20 +97,192 @@ TITLES = (
     "PART-TIME FLEXIBLE/LL",
 )
 
-ENV_VARS = (
-    "FTP_USER",
-    "FTP_PASS",
-    "FTP_PATH",
-    "FTP_HOST",
-    "FTP_PORT",
-    "CARBON_DB",
-)
+
+def _add_article(xml_file: IO, article: dict[str, Any]) -> None:
+    """Create an XML element representing an article and write it to an output file.
+
+    The function will create a single 'ARTICLE' element that contains subelements
+    representing fields in a record from the 'AA_ARTICLE table'. The 'ARTICLE'
+    element is written to an XML file.
+
+    Args:
+        xml_file (IO): A file-like object (stream) that writes to an XML file.
+        article (dict[str, Any]): A record from the AA_ARTICLE table.
+    """
+    record = ET.Element("ARTICLE")
+    add_child(record, "AA_MATCH_SCORE", str(article["AA_MATCH_SCORE"]))
+    add_child(record, "ARTICLE_ID", article["ARTICLE_ID"])
+    add_child(record, "ARTICLE_TITLE", article["ARTICLE_TITLE"])
+    add_child(record, "ARTICLE_YEAR", article["ARTICLE_YEAR"])
+    add_child(record, "AUTHORS", article["AUTHORS"])
+    add_child(record, "DOI", article["DOI"])
+    add_child(record, "ISSN_ELECTRONIC", article["ISSN_ELECTRONIC"])
+    add_child(record, "ISSN_PRINT", article["ISSN_PRINT"])
+    add_child(record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"])
+    add_child(record, "JOURNAL_FIRST_PAGE", article["JOURNAL_FIRST_PAGE"])
+    add_child(record, "JOURNAL_LAST_PAGE", article["JOURNAL_LAST_PAGE"])
+    add_child(record, "JOURNAL_ISSUE", article["JOURNAL_ISSUE"])
+    add_child(record, "JOURNAL_VOLUME", article["JOURNAL_VOLUME"])
+    add_child(record, "JOURNAL_NAME", article["JOURNAL_NAME"])
+    add_child(record, "MIT_ID", article["MIT_ID"])
+    add_child(record, "PUBLISHER", article["PUBLISHER"])
+    xml_file.write(record)
+
+
+def _add_person(xml_file: IO, person: dict[str, Any]) -> None:
+    """Create an XML element representing a person and write it to an output file.
+
+    The function will create a single 'record' element that contains subelements
+    representing fields from the 'HR_PERSON_EMPLOYEE_LIMITED', 'HR_ORG_UNIT',
+    and 'ORCID_TO_MITID' tables. The 'record' element is written to
+    to an XML file.
+
+    Args:
+        xml_file (IO): A file-like object (stream) that writes to an XML file.
+        person (dict[str, Any]): A record from from a data model that includes fields
+          from the 'HR_PERSON_EMPLOYEE_LIMITED', 'HR_ORG_UNIT', and 'ORCID_TO_MITID'
+          tables.
+    """
+    record = ET.Element("record")
+    add_child(record, "field", person["MIT_ID"], name="[Proprietary_ID]")
+    add_child(record, "field", person["KRB_NAME_UPPERCASE"], name="[Username]")
+    add_child(
+        record,
+        "field",
+        initials(person["FIRST_NAME"], person["MIDDLE_NAME"]),
+        name="[Initials]",
+    )
+    add_child(record, "field", person["LAST_NAME"], name="[LastName]")
+    add_child(record, "field", person["FIRST_NAME"], name="[FirstName]")
+    add_child(record, "field", person["EMAIL_ADDRESS"], name="[Email]")
+    add_child(record, "field", "MIT", name="[AuthenticatingAuthority]")
+    add_child(record, "field", "1", name="[IsAcademic]")
+    add_child(record, "field", "1", name="[IsCurrent]")
+    add_child(record, "field", "1", name="[LoginAllowed]")
+    add_child(
+        record,
+        "field",
+        group_name(person["DLC_NAME"], person["PERSONNEL_SUBAREA_CODE"]),
+        name="[PrimaryGroupDescriptor]",
+    )
+    add_child(
+        record,
+        "field",
+        hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
+        name="[ArriveDate]",
+    )
+    add_child(
+        record,
+        "field",
+        person["APPOINTMENT_END_DATE"].strftime("%Y-%m-%d"),
+        name="[LeaveDate]",
+    )
+    add_child(record, "field", person["ORCID"], name="[Generic01]")
+    add_child(record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]")
+    add_child(record, "field", person["ORG_HIER_SCHOOL_AREA_NAME"], name="[Generic03]")
+    add_child(record, "field", person["DLC_NAME"], name="[Generic04]")
+    add_child(record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]")
+    xml_file.write(record)
+
+
+def add_child(
+    parent: ET._Element,  # noqa: SLF001
+    element: str,
+    text: str | None = None,
+    **kwargs: str,
+) -> ET._Element:  # noqa: SLF001
+    """Add a subelement to an existing element.
+
+    Args:
+        parent (ET._Element): The root element.
+        element: The tag name assigned to the subelement.
+        text (str | None, optional): _description_. Defaults to None.
+        **kwargs (str): See lxml.etree.SubElement for more details.
+
+    Returns:
+        ET._Element: The subelement.
+    """
+    child = ET.SubElement(parent, element, attrib=kwargs)
+    child.text = text
+    return child
+
+
+@contextmanager
+def article_feed(output_file: IO) -> Generator:
+    """Generate XML feed of articles.
+
+    Args:
+        output_file (IO): A file-like object (stream) into which normalized XML strings
+            strings are written.
+
+    Yields:
+        Generator: A function that adds an 'ARTICLE' element to an 'ARTICLES'
+          root element.
+    """
+    with ET.xmlfile(output_file, encoding="UTF-8") as xf:
+        xf.write_declaration()
+        with xf.element("ARTICLES"):
+            yield partial(_add_article, xf)
+
+
+def articles() -> Generator[dict[str, Any], Any, None]:
+    """Create a generator of article records.
+
+    Yields:
+        Generator[dict[str, Any], Any, None]: Results matching the query submitted to
+            the Data Warehouse for retrieving 'articles' records.
+    """
+    sql = (
+        select(aa_articles)
+        .where(aa_articles.c.ARTICLE_ID.is_not(None))
+        .where(aa_articles.c.ARTICLE_TITLE.is_not(None))
+        .where(aa_articles.c.DOI.is_not(None))
+        .where(aa_articles.c.MIT_ID.is_not(None))
+    )
+    with closing(engine().connect()) as connection:
+        result = connection.execute(sql)
+        for row in result:
+            yield dict(zip(result.keys(), row, strict=True))
+
+
+@contextmanager
+def person_feed(output_file: IO) -> Generator:
+    """Generate XML feed of people.
+
+    This is a streaming XML generator for people. Output will be
+    written to the provided output destination which can be a file
+    or file-like object. The context manager returns a function
+    which can be called repeatedly to add a person to the feed::
+
+        with person_feed(sys.stdout) as f:
+            f({"MIT_ID": "1234", ...})
+            f({"MIT_ID": "5678", ...})
+
+    Args:
+        output_file (IO): A file-like object (stream) into which normalized XML
+            strings are written.
+
+    Yields:
+        Generator: A function that adds a 'record' element to a 'records' root element.
+          .
+    """
+    # namespace assigned to the xmlns attribute of the root 'records' element
+    symplectic_elements_namespace = "http://www.symplectic.co.uk/hrimporter"
+    qualified_tag_name = ET.QName(symplectic_elements_namespace, tag="records")
+    nsmap = {None: symplectic_elements_namespace}
+
+    with ET.xmlfile(output_file, encoding="UTF-8") as xml_file:
+        xml_file.write_declaration()
+        with xml_file.element(tag=qualified_tag_name, nsmap=nsmap):
+            yield partial(_add_person, xml_file)
 
 
 def people() -> Generator[dict[str, Any], Any, None]:
-    """A person generator.
+    """Create a generator of 'people' records.
 
-    Returns an iterator of person dictionaries.
+    Yields:
+        Generator[dict[str, Any], Any, None]: Results matching the query submitted to
+            the Data Warehouse for retrieving 'people' records.
     """
     sql = (
         select(
@@ -151,181 +324,7 @@ def people() -> Generator[dict[str, Any], Any, None]:
             yield dict(zip(result.keys(), row, strict=True))
 
 
-def articles() -> Generator[dict[str, Any], Any, None]:
-    """An article generator.
-
-    Returns an iterator over the AA_ARTICLE table.
-    """
-    sql = (
-        select(aa_articles)
-        .where(aa_articles.c.ARTICLE_ID.is_not(None))
-        .where(aa_articles.c.ARTICLE_TITLE.is_not(None))
-        .where(aa_articles.c.DOI.is_not(None))
-        .where(aa_articles.c.MIT_ID.is_not(None))
-    )
-    with closing(engine().connect()) as connection:
-        result = connection.execute(sql)
-        for row in result:
-            yield dict(zip(result.keys(), row, strict=True))
-
-
-def initials(*args: str) -> str:
-    """Turn `*args` into a space-separated string of initials.
-
-    Each argument is processed through :func:`~initialize_part` and
-    the resulting list is joined with a space.
-    """
-    return " ".join([initialize_part(n) for n in args if n])
-
-
-def initialize_part(name: str) -> str:
-    """Turn a name part into uppercased initials.
-
-    This function will do its best to parse the argument into one or
-    more initials. The first step is to remove any character that is
-    not alphanumeric, whitespace or a hyphen. The remaining string
-    is split on word boundaries, retaining both the words and the
-    boundaries. The first character of each list member is then
-    joined together, uppercased and returned.
-
-    Some examples::
-
-        assert initialize_part('Foo Bar') == 'F B'
-        assert initialize_part('F. Bar-Baz') == 'F B-B'
-        assert initialize_part('Foo-bar') == 'F-B'
-        assert initialize_part(u'влад') == u'В'
-
-    """  # noqa: RUF002
-    name = re.sub(r"[^\w\s-]", "", name, flags=re.UNICODE)
-    return "".join([x[:1] for x in re.split(r"(\W+)", name, flags=re.UNICODE)]).upper()
-
-
-def group_name(dlc: str, sub_area: str) -> str:
-    qualifier = "Faculty" if sub_area in ("CFAT", "CFAN") else "Non-faculty"
-    return f"{dlc} {qualifier}"
-
-
-def hire_date_string(original_start_date: datetime, date_to_faculty: datetime) -> str:
-    if date_to_faculty:
-        return date_to_faculty.strftime("%Y-%m-%d")
-    return original_start_date.strftime("%Y-%m-%d")
-
-
-def _ns(namespace: str, element: str) -> ET.QName:
-    return ET.QName(namespace, element)
-
-
-SYMPLECTIC_NS = "http://www.symplectic.co.uk/hrimporter"
-NSMAP = {None: SYMPLECTIC_NS}
-ns = partial(_ns, SYMPLECTIC_NS)
-
-
-def add_child(
-    parent: ET._Element,  # noqa: SLF001
-    element: str,
-    text: str | None = None,
-    **kwargs: str,
-) -> ET._Element:  # noqa: SLF001
-    """Add a subelement with text."""
-    child = ET.SubElement(parent, element, attrib=kwargs)
-    child.text = text
-    return child
-
-
-@contextmanager
-def person_feed(out: IO) -> Generator:
-    """Generate XML feed of people.
-
-    This is a streaming XML generator for people. Output will be
-    written to the provided output destination which can be a file
-    or file-like object. The context manager returns a function
-    which can be called repeatedly to add a person to the feed::
-
-        with person_feed(sys.stdout) as f:
-            f({"MIT_ID": "1234", ...})
-            f({"MIT_ID": "5678", ...})
-
-    """
-    with ET.xmlfile(out, encoding="UTF-8") as xf:
-        xf.write_declaration()
-        with xf.element(ns("records"), nsmap=NSMAP):
-            yield partial(_add_person, xf)
-
-
-@contextmanager
-def article_feed(out: IO) -> Generator:
-    """Generate XML feed of articles."""
-    with ET.xmlfile(out, encoding="UTF-8") as xf:
-        xf.write_declaration()
-        with xf.element("ARTICLES"):
-            yield partial(_add_article, xf)
-
-
-def _add_article(xf: IO, article: dict[str, Any]) -> None:
-    record = ET.Element("ARTICLE")
-    add_child(record, "AA_MATCH_SCORE", str(article["AA_MATCH_SCORE"]))
-    add_child(record, "ARTICLE_ID", article["ARTICLE_ID"])
-    add_child(record, "ARTICLE_TITLE", article["ARTICLE_TITLE"])
-    add_child(record, "ARTICLE_YEAR", article["ARTICLE_YEAR"])
-    add_child(record, "AUTHORS", article["AUTHORS"])
-    add_child(record, "DOI", article["DOI"])
-    add_child(record, "ISSN_ELECTRONIC", article["ISSN_ELECTRONIC"])
-    add_child(record, "ISSN_PRINT", article["ISSN_PRINT"])
-    add_child(record, "IS_CONFERENCE_PROCEEDING", article["IS_CONFERENCE_PROCEEDING"])
-    add_child(record, "JOURNAL_FIRST_PAGE", article["JOURNAL_FIRST_PAGE"])
-    add_child(record, "JOURNAL_LAST_PAGE", article["JOURNAL_LAST_PAGE"])
-    add_child(record, "JOURNAL_ISSUE", article["JOURNAL_ISSUE"])
-    add_child(record, "JOURNAL_VOLUME", article["JOURNAL_VOLUME"])
-    add_child(record, "JOURNAL_NAME", article["JOURNAL_NAME"])
-    add_child(record, "MIT_ID", article["MIT_ID"])
-    add_child(record, "PUBLISHER", article["PUBLISHER"])
-    xf.write(record)
-
-
-def _add_person(xf: IO, person: dict[str, Any]) -> None:
-    record = ET.Element("record")
-    add_child(record, "field", person["MIT_ID"], name="[Proprietary_ID]")
-    add_child(record, "field", person["KRB_NAME_UPPERCASE"], name="[Username]")
-    add_child(
-        record,
-        "field",
-        initials(person["FIRST_NAME"], person["MIDDLE_NAME"]),
-        name="[Initials]",
-    )
-    add_child(record, "field", person["LAST_NAME"], name="[LastName]")
-    add_child(record, "field", person["FIRST_NAME"], name="[FirstName]")
-    add_child(record, "field", person["EMAIL_ADDRESS"], name="[Email]")
-    add_child(record, "field", "MIT", name="[AuthenticatingAuthority]")
-    add_child(record, "field", "1", name="[IsAcademic]")
-    add_child(record, "field", "1", name="[IsCurrent]")
-    add_child(record, "field", "1", name="[LoginAllowed]")
-    add_child(
-        record,
-        "field",
-        group_name(person["DLC_NAME"], person["PERSONNEL_SUBAREA_CODE"]),
-        name="[PrimaryGroupDescriptor]",
-    )
-    add_child(
-        record,
-        "field",
-        hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
-        name="[ArriveDate]",
-    )
-    add_child(
-        record,
-        "field",
-        person["APPOINTMENT_END_DATE"].strftime("%Y-%m-%d"),
-        name="[LeaveDate]",
-    )
-    add_child(record, "field", person["ORCID"], name="[Generic01]")
-    add_child(record, "field", person["PERSONNEL_SUBAREA_CODE"], name="[Generic02]")
-    add_child(record, "field", person["ORG_HIER_SCHOOL_AREA_NAME"], name="[Generic03]")
-    add_child(record, "field", person["DLC_NAME"], name="[Generic04]")
-    add_child(record, "field", person.get("HR_ORG_LEVEL5_NAME"), name="[Generic05]")
-    xf.write(record)
-
-
-class CarbonCopyFTPS(FTP_TLS):
+class CarbonFtpsTls(FTP_TLS):
     """FTP_TLS subclass with support for SSL session reuse.
 
     The stdlib version of FTP_TLS creates a new SSL session for data
@@ -340,6 +339,9 @@ class CarbonCopyFTPS(FTP_TLS):
     message for subsequent commands. The modified storbinary method here
     removes the unwrap call. Calling quit on the ftp connection should
     still cleanly shutdown the connection.
+
+    Attributes:
+        See ftplib.FTP_TLS for more details.
     """
 
     def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
@@ -371,57 +373,57 @@ class CarbonCopyFTPS(FTP_TLS):
 
 
 class Writer:
-    """A Symplectic Elements feed writer.
+    """A writer that outputs normalized XML strings to a specified file.
 
-    Use this class to generate and output an HR or AA feed for Symplectic
-    Elements.
+    Use this class to generate and output an HR or AA feed.
+
+    Attributes:
+        output_file: A file-like object (stream) into which normalized XML
+            strings are written.
     """
 
-    def __init__(self, out: IO):
-        self.out = out
+    def __init__(self, output_file: IO):
+        self.output_file = output_file
 
     def write(self, feed_type: str) -> None:
         """Write the specified feed type to the configured output."""
         if feed_type == "people":
-            with person_feed(self.out) as f:
+            with person_feed(self.output_file) as f:
                 for person in people():
                     f(person)
         elif feed_type == "articles":
-            with article_feed(self.out) as f:
+            with article_feed(self.output_file) as f:
                 for article in articles():
                     f(article)
 
 
 class PipeWriter(Writer):
-    """A read/write :class:`carbon.app.Writer`.
+    """A read/write carbon.app.Writer for the Symplectic Elements FTP server.
 
-    This class is intended to provide a buffered read/write connecter. The
-    :meth:`~carbon.app.PipeWriter.pipe` method should be called before
-    writing to configure the reader end. For example::
+    This class is intended to provide a buffered read/write connecter.
 
-        PipeWriter(fp_out).pipe(reader).write('people')
-
-    See :class:`carbon.app.FTPReader` for an example reader.
+    Attributes:
+        output_file: A file-like object (stream) into which normalized XML
+            strings are written.
+        ftp_output_file: A file-like object (stream) that reads data from
+            PipeWriter().output_file and writes its contents to an XML file
+            on the Symplectic Elements FTP server.
     """
+
+    def __init__(self, input_file: IO, ftp_output_file: Callable):
+        super().__init__(input_file)
+        self.ftp_output_file = ftp_output_file
 
     def write(self, feed_type: str) -> None:
         """Concurrently read/write from the configured inputs and outputs.
 
         This method will block until both the reader and writer are finished.
         """
-        pipe = threading.Thread(target=self._reader)
+        pipe = threading.Thread(target=self.ftp_output_file)
         pipe.start()
         super().write(feed_type)
-        self.out.close()
+        self.output_file.close()
         pipe.join()
-
-    def connect(self, reader: FtpFileWriter) -> PipeWriter:
-        """Connect the read end of the pipe.
-
-        This should be called before :meth:`~carbon.app.PipeWriter.write`.
-        """
-        self._reader = reader
-        return self
 
 
 class FtpFileWriter:
@@ -459,7 +461,7 @@ class FtpFileWriter:
 
     def __call__(self) -> None:
         """Transfer a file using FTP over TLS."""
-        ftps = CarbonCopyFTPS(timeout=30)
+        ftps = CarbonFtpsTls(timeout=30)
         ftps.connect(host=self.host, port=self.port)
         ftps.login(user=self.user, passwd=self.password)
         ftps.prot_p()
@@ -492,18 +494,20 @@ class DatabaseToFtpPipe:
         self.config = config
 
     def run(self) -> None:
-        r, w = os.pipe()
+        read_file, write_file = os.pipe()
 
-        with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
-            ftp_file_writer = FtpFileWriter(
-                content_feed=fp_r,
+        with open(read_file, "rb") as buffered_reader, open(
+            write_file, "wb"
+        ) as buffered_writer:
+            ftp_file = FtpFileWriter(
+                content_feed=buffered_reader,
                 user=self.config["SYMPLECTIC_FTP_USER"],
                 password=self.config["SYMPLECTIC_FTP_PASS"],
                 path=self.config["SYMPLECTIC_FTP_PATH"],
                 host=self.config["SYMPLECTIC_FTP_HOST"],
                 port=int(self.config["SYMPLECTIC_FTP_PORT"]),
             )
-            PipeWriter(out=fp_w).connect(reader=ftp_file_writer).write(
+            PipeWriter(input_file=buffered_writer, ftp_output_file=ftp_file).write(
                 feed_type=self.config["FEED_TYPE"]
             )
 
@@ -515,10 +519,10 @@ class DatabaseToFtpPipe:
         """
         logger.info("Testing connection to the Symplectic Elements FTP server")
         try:
-            ftps = CarbonCopyFTPS(timeout=30)
+            ftps = CarbonFtpsTls(timeout=30)
             ftps.connect(
-                self.config["SYMPLECTIC_FTP_HOST"],
-                int(self.config["SYMPLECTIC_FTP_PORT"]),
+                host=self.config["SYMPLECTIC_FTP_HOST"],
+                port=int(self.config["SYMPLECTIC_FTP_PORT"]),
             )
             ftps.login(
                 user=self.config["SYMPLECTIC_FTP_USER"],

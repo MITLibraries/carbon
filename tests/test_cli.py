@@ -24,7 +24,7 @@ def test_people_returns_people(
     feed_type,
     symplectic_ftp_path,
     runner,
-    people_data,
+    people_element,
     ftp_server,
     stubbed_sns_client,
 ):
@@ -40,7 +40,7 @@ def test_people_returns_people(
         people_element, encoding="UTF-8", xml_declaration=True
     )
     assert people_xml_string == ET.tostring(
-        people_data, encoding="UTF-8", xml_declaration=True
+        people_element, encoding="UTF-8", xml_declaration=True
     )
 
 
@@ -53,7 +53,7 @@ def test_articles_returns_articles(
     feed_type,
     symplectic_ftp_path,
     runner,
-    articles_data,
+    articles_element,
     ftp_server,
     stubbed_sns_client,
 ):
@@ -69,7 +69,7 @@ def test_articles_returns_articles(
         articles_element, encoding="UTF-8", xml_declaration=True
     )
     assert articles_xml_string == ET.tostring(
-        articles_data, encoding="UTF-8", xml_declaration=True
+        articles_element, encoding="UTF-8", xml_declaration=True
     )
 
 
