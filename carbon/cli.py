@@ -48,7 +48,7 @@ def main(*, run_connection_tests: bool) -> None:
     engine.run_connection_test()
 
     # test connection to the Symplectic Elements FTP server
-    pipe = DatabaseToFtpPipe({"feed_type": config_values["FEED_TYPE"]}, config_values)
+    pipe = DatabaseToFtpPipe(config=config_values)
     pipe.run_connection_test()
 
     if not run_connection_tests:

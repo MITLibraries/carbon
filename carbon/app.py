@@ -18,7 +18,6 @@ from carbon.database import aa_articles, dlcs, engine, orcids, persons
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
     from socket import socket
-    from ssl import SSLContext
 
 logger = logging.getLogger(__name__)
 
@@ -450,7 +449,6 @@ class FtpFileWriter:
         path: str,
         host: str = "localhost",
         port: int = 21,
-        ctx: SSLContext | None = None,
     ):
         self.content_feed = content_feed
         self.user = user
@@ -458,11 +456,10 @@ class FtpFileWriter:
         self.path = path
         self.host = host
         self.port = port
-        self.ctx = ctx
 
     def __call__(self) -> None:
         """Transfer a file using FTP over TLS."""
-        ftps = CarbonCopyFTPS(context=self.ctx, timeout=30)
+        ftps = CarbonCopyFTPS(timeout=30)
         ftps.connect(host=self.host, port=self.port)
         ftps.login(user=self.user, passwd=self.password)
         ftps.prot_p()
@@ -490,28 +487,25 @@ class DatabaseToFtpPipe:
 
     def __init__(
         self,
-        event: dict[str, str],
         config: dict,
-        ssl_ctx: SSLContext | None = None,
     ):
-        self.event = event
         self.config = config
-        self.ssl_ctx = ssl_ctx
 
     def run(self) -> None:
         r, w = os.pipe()
-        feed_type = self.event["feed_type"]
+
         with open(r, "rb") as fp_r, open(w, "wb") as fp_w:
             ftp_file_writer = FtpFileWriter(
-                fp_r,
-                self.config["SYMPLECTIC_FTP_USER"],
-                self.config["SYMPLECTIC_FTP_PASS"],
-                self.config["SYMPLECTIC_FTP_PATH"],
-                self.config["SYMPLECTIC_FTP_HOST"],
-                int(self.config["SYMPLECTIC_FTP_PORT"]),
-                self.ssl_ctx,
+                content_feed=fp_r,
+                user=self.config["SYMPLECTIC_FTP_USER"],
+                password=self.config["SYMPLECTIC_FTP_PASS"],
+                path=self.config["SYMPLECTIC_FTP_PATH"],
+                host=self.config["SYMPLECTIC_FTP_HOST"],
+                port=int(self.config["SYMPLECTIC_FTP_PORT"]),
             )
-            PipeWriter(out=fp_w).connect(reader=ftp_file_writer).write(feed_type)
+            PipeWriter(out=fp_w).connect(reader=ftp_file_writer).write(
+                feed_type=self.config["FEED_TYPE"]
+            )
 
     def run_connection_test(self) -> None:
         """Test connection to the Symplectic Elements FTP server.
@@ -521,7 +515,7 @@ class DatabaseToFtpPipe:
         """
         logger.info("Testing connection to the Symplectic Elements FTP server")
         try:
-            ftps = CarbonCopyFTPS(context=self.ssl_ctx, timeout=30)
+            ftps = CarbonCopyFTPS(timeout=30)
             ftps.connect(
                 self.config["SYMPLECTIC_FTP_HOST"],
                 int(self.config["SYMPLECTIC_FTP_PORT"]),
