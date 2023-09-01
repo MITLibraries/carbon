@@ -5,7 +5,7 @@ import click
 
 from carbon.app import DatabaseToFtpPipe
 from carbon.config import configure_logger, configure_sentry, load_config_values
-from carbon.database import engine
+from carbon.database import DatabaseEngine
 from carbon.helpers import sns_log
 
 logger = logging.getLogger(__name__)
@@ -43,12 +43,14 @@ def main(*, run_connection_tests: bool) -> None:
         config_values["WORKSPACE"],
     )
 
+    engine = DatabaseEngine()
+
     # test connection to the Data Warehouse
     engine.configure(config_values["CONNECTION_STRING"], thick_mode=True)
     engine.run_connection_test()
 
     # test connection to the Symplectic Elements FTP server
-    pipe = DatabaseToFtpPipe(config=config_values)
+    pipe = DatabaseToFtpPipe(config=config_values, engine=engine)
     pipe.run_connection_test()
 
     if not run_connection_tests:

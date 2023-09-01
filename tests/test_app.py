@@ -27,45 +27,45 @@ qualified_tag_name = ET.QName(symplectic_elements_namespace, tag="records")
 nsmap = {None: symplectic_elements_namespace}
 
 
-def test_people_generates_people():
-    people_records = list(people())
+def test_people_generates_people(functional_engine):
+    people_records = list(people(engine=functional_engine))
     person = people_records[0]
     assert person["KRB_NAME_UPPERCASE"] == "FOOBAR"
     person = people_records[1]
     assert person["KRB_NAME_UPPERCASE"] == "THOR"
 
 
-def test_people_adds_orcids():
-    people_records = list(people())
+def test_people_adds_orcids(functional_engine):
+    people_records = list(people(engine=functional_engine))
     assert people_records[0]["ORCID"] == "http://example.com/1"
 
 
-def test_people_excludes_records_without_email():
-    people_records = list(people())
+def test_people_excludes_records_without_email(functional_engine):
+    people_records = list(people(engine=functional_engine))
     people_without_emails = [
         person for person in people_records if person["EMAIL_ADDRESS"] is None
     ]
     assert len(people_without_emails) == 0
 
 
-def test_people_excludes_records_without_last_name():
-    people_records = list(people())
+def test_people_excludes_records_without_last_name(functional_engine):
+    people_records = list(people(engine=functional_engine))
     people_without_last_names = [
         person for person in people_records if person["LAST_NAME"] is None
     ]
     assert len(people_without_last_names) == 0
 
 
-def test_people_excludes_records_without_kerberos():
-    people_records = list(people())
+def test_people_excludes_records_without_kerberos(functional_engine):
+    people_records = list(people(engine=functional_engine))
     people_without_kerberos = [
         person for person in people_records if person["KRB_NAME_UPPERCASE"] is None
     ]
     assert len(people_without_kerberos) == 0
 
 
-def test_people_excludes_records_without_mit_id():
-    people_records = list(people())
+def test_people_excludes_records_without_mit_id(functional_engine):
+    people_records = list(people(engine=functional_engine))
     people_without_mit_id = [
         person for person in people_records if person["MIT_ID"] is None
     ]
@@ -94,9 +94,9 @@ def test_add_child_adds_child_element(people_element_maker):
     assert ET.tostring(element) == ET.tostring(xml)
 
 
-def test_writer_writes_person_feed():
+def test_writer_writes_person_feed(functional_engine):
     output_file = BytesIO()
-    writer = Writer(output_file)
+    writer = Writer(functional_engine, output_file)
     writer.write("people")
     xml = ET.XML(output_file.getvalue())
     xp = xml.xpath(
@@ -106,13 +106,15 @@ def test_writer_writes_person_feed():
     assert xp[1].text == "Þorgerðr"
 
 
-def test_pipewriter_writes_person_feed(reader):
+def test_pipewriter_writes_person_feed(reader, functional_engine):
     read_file, write_file = os.pipe()
     with open(read_file, "rb") as buffered_reader, open(
         write_file, "wb"
     ) as buffered_writer:
         file = reader(buffered_reader)
-        writer = PipeWriter(input_file=buffered_writer, ftp_output_file=file)
+        writer = PipeWriter(
+            engine=functional_engine, input_file=buffered_writer, ftp_output_file=file
+        )
         writer.write("people")
     people_element = ET.XML(file.data)
     people_first_names_xpath = people_element.xpath(
@@ -182,8 +184,8 @@ def test_group_name_adds_non_faculty():
     assert get_group_name("FOOBAR", "COAC") == "FOOBAR Non-faculty"
 
 
-def test_articles_generates_articles():
-    articles_records = list(articles())
+def test_articles_generates_articles(functional_engine):
+    articles_records = list(articles(engine=functional_engine))
     assert "Yawning Abyss of Chaos" in articles_records[0]["ARTICLE_TITLE"]
 
 
@@ -196,8 +198,8 @@ def test_article_feed_adds_article(articles_records, articles_element):
     )
 
 
-def test_articles_skips_articles_without_required_fields():
-    articles_records = list(articles())
+def test_articles_skips_articles_without_required_fields(functional_engine):
+    articles_records = list(articles(engine=functional_engine))
     assert len(articles_records) == 1
 
 

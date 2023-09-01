@@ -12,8 +12,6 @@ Carbon is a tool for generating a feed of people that can be loaded into Symplec
 
 The Data Warehouse runs on an older version of Oracle that necessitates the `thick` mode of python-oracledb, which requires the Oracle Instant Client Library (this app was developed with version 21.9.0.0.0). The test suite uses SQLite, so you can develop and test without connecting to the Data Warehouse.
 
-**Note:** One of the unit tests (`test_cli_connection_tests_fail`) checks that an error message is returned if the app fails to connect to the Data Warehouse. With the current structure of the application, which relies on a single SQLAlchemy engine that is created in `db.py`, this test must be run at the end because it modifies the content of the engine that would cause other tests to fail. This "bug" (not technically a breaking change) will be addressed in later efforts to enhance the Carbon application.
-
 ### With Docker
 
 **Note:** As of this writing, the Apple M1 Macs cannot run Oracle Instant Client, so Docker is the only option for development on those machines.
