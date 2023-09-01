@@ -14,7 +14,7 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
 from pyftpdlib.servers import FTPServer
 
-from carbon.db import aa_articles, dlcs, engine, metadata, orcids, persons
+from carbon.database import aa_articles, dlcs, engine, metadata, orcids, persons
 
 
 @pytest.fixture(scope="session", autouse=True)

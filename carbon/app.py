@@ -14,7 +14,7 @@ import boto3
 from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
-from carbon.db import aa_articles, dlcs, engine, orcids, persons
+from carbon.database import aa_articles, dlcs, engine, orcids, persons
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator

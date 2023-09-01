@@ -7,7 +7,7 @@ from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.cli import main
-from carbon.db import engine
+from carbon.database import engine
 
 
 @pytest.fixture

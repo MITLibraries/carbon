@@ -5,7 +5,7 @@ import click
 
 from carbon.app import FTPFeeder, sns_log
 from carbon.config import configure_logger, configure_sentry, load_config_values
-from carbon.db import engine
+from carbon.database import engine
 
 logger = logging.getLogger(__name__)
 

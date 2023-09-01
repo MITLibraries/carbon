@@ -1,6 +1,6 @@
 import pytest
 
-from carbon.db import DatabaseEngine
+from carbon.database import DatabaseEngine
 
 
 def test_nonconfigured_engine_raises_attributeerror():
