@@ -13,7 +13,7 @@ from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
 from carbon.database import aa_articles, dlcs, engine, orcids, persons
-from carbon.helpers import group_name, hire_date_string, initials
+from carbon.helpers import get_group_name, get_hire_date_string, get_initials
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator
@@ -149,7 +149,7 @@ def _add_person(xml_file: IO, person: dict[str, Any]) -> None:
     add_child(
         record,
         "field",
-        initials(person["FIRST_NAME"], person["MIDDLE_NAME"]),
+        get_initials(person["FIRST_NAME"], person["MIDDLE_NAME"]),
         name="[Initials]",
     )
     add_child(record, "field", person["LAST_NAME"], name="[LastName]")
@@ -162,13 +162,13 @@ def _add_person(xml_file: IO, person: dict[str, Any]) -> None:
     add_child(
         record,
         "field",
-        group_name(person["DLC_NAME"], person["PERSONNEL_SUBAREA_CODE"]),
+        get_group_name(person["DLC_NAME"], person["PERSONNEL_SUBAREA_CODE"]),
         name="[PrimaryGroupDescriptor]",
     )
     add_child(
         record,
         "field",
-        hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
+        get_hire_date_string(person["ORIGINAL_HIRE_DATE"], person["DATE_TO_FACULTY"]),
         name="[ArriveDate]",
     )
     add_child(
@@ -187,23 +187,25 @@ def _add_person(xml_file: IO, person: dict[str, Any]) -> None:
 
 def add_child(
     parent: ET._Element,  # noqa: SLF001
-    element: str,
-    text: str | None = None,
+    element_name: str,
+    element_text: str | None = None,
     **kwargs: str,
 ) -> ET._Element:  # noqa: SLF001
     """Add a subelement to an existing element.
 
     Args:
         parent (ET._Element): The root element.
-        element: The tag name assigned to the subelement.
-        text (str | None, optional): _description_. Defaults to None.
-        **kwargs (str): See lxml.etree.SubElement for more details.
+        element_name: The name of the subelement.
+        element_text (str | None, optional): The value stored in the subelement.
+            Defaults to None.
+        **kwargs (str): Keyword arguments representing attributes for the subelement.
+           The 'name' argument is set for 'people' elements.
 
     Returns:
         ET._Element: The subelement.
     """
-    child = ET.SubElement(parent, element, attrib=kwargs)
-    child.text = text
+    child = ET.SubElement(parent, element_name, attrib=kwargs)
+    child.text = element_text
     return child
 
 
@@ -219,10 +221,10 @@ def article_feed(output_file: IO) -> Generator:
         Generator: A function that adds an 'ARTICLE' element to an 'ARTICLES'
           root element.
     """
-    with ET.xmlfile(output_file, encoding="UTF-8") as xf:
-        xf.write_declaration()
-        with xf.element("ARTICLES"):
-            yield partial(_add_article, xf)
+    with ET.xmlfile(output_file, encoding="UTF-8") as xml_file:
+        xml_file.write_declaration()
+        with xml_file.element("ARTICLES"):
+            yield partial(_add_article, xml_file)
 
 
 def articles() -> Generator[dict[str, Any], Any, None]:
@@ -345,6 +347,7 @@ class CarbonFtpsTls(FTP_TLS):
     """
 
     def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
+        """Initiate a transfer over the data connection."""
         conn, size = FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:  # type: ignore[attr-defined]
             conn = self.context.wrap_socket(
@@ -360,6 +363,7 @@ class CarbonFtpsTls(FTP_TLS):
         callback: Callable | None = None,
         rest: str | None = None,  # type: ignore[override]
     ) -> str:
+        """Store a file in binary mode."""
         self.voidcmd("TYPE I")
         with self.transfercmd(cmd, rest) as conn:
             while 1:
@@ -375,7 +379,8 @@ class CarbonFtpsTls(FTP_TLS):
 class Writer:
     """A writer that outputs normalized XML strings to a specified file.
 
-    Use this class to generate and output an HR or AA feed.
+    Use this class to generate either a 'people' or 'articles' feed that is written
+    to a specified output file.
 
     Attributes:
         output_file: A file-like object (stream) into which normalized XML

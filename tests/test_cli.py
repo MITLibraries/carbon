@@ -28,7 +28,7 @@ def test_people_returns_people(
     ftp_server,
     stubbed_sns_client,
 ):
-    ftp_socket, ftp_directory = ftp_server
+    _, ftp_directory = ftp_server
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -57,7 +57,7 @@ def test_articles_returns_articles(
     ftp_server,
     stubbed_sns_client,
 ):
-    ftp_socket, ftp_directory = ftp_server
+    _, ftp_directory = ftp_server
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -114,7 +114,7 @@ def test_cli_connection_tests_success(caplog, runner):
 
 
 def test_cli_connection_tests_fail(caplog, ftp_server, monkeypatch, runner):
-    ftp_socket, ftp_directory = ftp_server
+    ftp_socket, _ = ftp_server
 
     # override engine from pytest fixture
     # configure with connection string that will error out with engine.connect()

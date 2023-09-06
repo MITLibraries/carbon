@@ -24,7 +24,7 @@ def _app_init():
 
 @pytest.fixture(autouse=True)
 def _test_env(ftp_server):
-    ftp_socket, ftp_directory = ftp_server
+    ftp_socket, _ = ftp_server
     os.environ["FEED_TYPE"] = "test_feed_type"
     os.environ["LOG_LEVEL"] = "INFO"
     os.environ["SENTRY_DSN"] = "None"
@@ -93,8 +93,8 @@ def articles_element():
 def articles_records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data = os.path.join(current_dir, "fixtures/articles.yml")
-    with open(data) as fp:
-        return list(yaml.safe_load_all(fp))
+    with open(data) as file:
+        return list(yaml.safe_load_all(file))
 
 
 @pytest.fixture
@@ -164,8 +164,8 @@ def people_element(people_element_maker):
 def people_records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data = os.path.join(current_dir, "fixtures/data.yml")
-    with open(data) as fp:
-        return list(yaml.safe_load_all(fp))
+    with open(data) as file:
+        return list(yaml.safe_load_all(file))
 
 
 @pytest.fixture
@@ -184,43 +184,43 @@ def ftp_server():
     Use the ``ftp_server`` wrapper fixture instead as it will clean the
     directory before each test.
     """
-    s = socket.socket()
-    s.bind(("", 0))
+    ftp_socket = socket.socket()
+    ftp_socket.bind(("", 0))
     fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory() as ftp_directory:
         auth = DummyAuthorizer()
-        auth.add_user("user", "pass", d, perm="elradfmwMT")
+        auth.add_user("user", "pass", ftp_directory, perm="elradfmwMT")
         handler = TLS_FTPHandler
         handler.certfile = os.path.join(fixtures, "server.crt")
         handler.keyfile = os.path.join(fixtures, "server.key")
         handler.authorizer = auth
-        server = FTPServer(s, handler)
-        t = threading.Thread(target=server.serve_forever, daemon=1)
-        t.start()
-        yield s.getsockname(), d
+        server = FTPServer(ftp_socket, handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=1)
+        thread.start()
+        yield ftp_socket.getsockname(), ftp_directory
 
 
 @pytest.fixture
 def ftp_server_wrapper(ftp_server):
     """Wrapper around ``_ftp_server`` to clean directory before each test."""
-    d = ftp_server[1]
-    for f in os.listdir(d):
-        fpath = os.path.join(d, f)
-        if os.path.isfile(fpath):
-            os.unlink(fpath)
+    ftp_directory = ftp_server[1]
+    for file in os.listdir(ftp_directory):
+        file_path = os.path.join(ftp_directory, file)
+        if os.path.isfile(file_path):
+            os.unlink(file_path)
     return ftp_server
 
 
 @pytest.fixture
 def reader():
     class Reader:
-        def __init__(self, fp):
-            self.fp = fp
+        def __init__(self, file):
+            self.file = file
             self.data = b""
 
         def __call__(self):
             while 1:
-                data = self.fp.read(1024)
+                data = self.file.read(1024)
                 if not data:
                     break
                 self.data += data

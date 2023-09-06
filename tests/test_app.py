@@ -13,8 +13,8 @@ from carbon.app import (
     add_child,
     article_feed,
     articles,
-    group_name,
-    initials,
+    get_group_name,
+    get_initials,
     people,
     person_feed,
 )
@@ -73,16 +73,16 @@ def test_people_excludes_records_without_mit_id():
 
 
 def test_initials_returns_first_and_middle():
-    assert initials("Foo", "Bar") == "F B"
-    assert initials("Foo") == "F"
-    assert initials("F", "B") == "F B"
-    assert initials("Foo-bar", "Gaz") == "F-B G"
-    assert initials("Foo Bar-baz", "G") == "F B-B G"
-    assert initials("Foo", "") == "F"
-    assert initials("Foo", None) == "F"
-    assert initials("Gull-Þóris") == "G-Þ"
-    assert initials("владимир", "ильич", "ленин") == "В И Л"  # noqa: RUF001
-    assert initials("F. M.", "Laxdæla") == "F M L"
+    assert get_initials("Foo", "Bar") == "F B"
+    assert get_initials("Foo") == "F"
+    assert get_initials("F", "B") == "F B"
+    assert get_initials("Foo-bar", "Gaz") == "F-B G"
+    assert get_initials("Foo Bar-baz", "G") == "F B-B G"
+    assert get_initials("Foo", "") == "F"
+    assert get_initials("Foo", None) == "F"
+    assert get_initials("Gull-Þóris") == "G-Þ"
+    assert get_initials("владимир", "ильич", "ленин") == "В И Л"  # noqa: RUF001
+    assert get_initials("F. M.", "Laxdæla") == "F M L"
 
 
 def test_add_child_adds_child_element(people_element_maker):
@@ -95,10 +95,10 @@ def test_add_child_adds_child_element(people_element_maker):
 
 
 def test_writer_writes_person_feed():
-    b = BytesIO()
-    w = Writer(b)
-    w.write("people")
-    xml = ET.XML(b.getvalue())
+    output_file = BytesIO()
+    writer = Writer(output_file)
+    writer.write("people")
+    xml = ET.XML(output_file.getvalue())
     xp = xml.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
         namespaces={"s": "http://www.symplectic.co.uk/hrimporter"},
@@ -114,34 +114,34 @@ def test_pipewriter_writes_person_feed(reader):
         file = reader(buffered_reader)
         writer = PipeWriter(input_file=buffered_writer, ftp_output_file=file)
         writer.write("people")
-    xml = ET.XML(file.data)
-    xp = xml.xpath(
+    people_element = ET.XML(file.data)
+    people_first_names_xpath = people_element.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
         namespaces={"s": "http://www.symplectic.co.uk/hrimporter"},
     )
-    assert xp[1].text == "Þorgerðr"
+    assert people_first_names_xpath[1].text == "Þorgerðr"
 
 
 def test_ftp_file_writer_sends_file(ftp_server_wrapper):
-    s, d = ftp_server_wrapper
-    b = BytesIO(b"File uploaded to FTP server.")
+    ftp_socket, ftp_directory = ftp_server_wrapper
+    feed = BytesIO(b"File uploaded to FTP server.")
     ftp = FtpFileWriter(
-        content_feed=b,
+        content_feed=feed,
         user="user",
         password="pass",  # noqa: S106
         path="/DEV",
-        port=s[1],
+        port=ftp_socket[1],
     )
     ftp()
-    with open(os.path.join(d, "DEV")) as fp:
-        assert fp.read() == "File uploaded to FTP server."
+    with open(os.path.join(ftp_directory, "DEV")) as file:
+        assert file.read() == "File uploaded to FTP server."
 
 
 def test_person_feed_uses_namespace():
-    b = BytesIO()
-    with person_feed(b):
+    output_file = BytesIO()
+    with person_feed(output_file):
         pass
-    root = ET.XML(b.getvalue())
+    root = ET.XML(output_file.getvalue())
     assert root.tag == "{http://www.symplectic.co.uk/hrimporter}records"
 
 
@@ -149,8 +149,8 @@ def test_person_feed_adds_person(people_records):
     output_file = BytesIO()
     record = people_records[0]["person"].copy()
     record |= people_records[0]["orcid"] | people_records[0]["dlc"]
-    with person_feed(output_file) as f:
-        f(record)
+    with person_feed(output_file) as write_to_file:
+        write_to_file(record)
     person_element = ET.XML(output_file.getvalue())
     person_first_name_xpath = person_element.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
@@ -163,8 +163,8 @@ def test_person_feed_uses_utf8_encoding(people_records):
     output_file = BytesIO()
     record = people_records[1]["person"].copy()
     record |= people_records[1]["orcid"] | people_records[1]["dlc"]
-    with person_feed(output_file) as f:
-        f(record)
+    with person_feed(output_file) as write_to_file:
+        write_to_file(record)
     person_element = ET.XML(output_file.getvalue())
     person_first_name_xpath = person_element.xpath(
         "/s:records/s:record/s:field[@name='[FirstName]']",
@@ -174,12 +174,12 @@ def test_person_feed_uses_utf8_encoding(people_records):
 
 
 def test_group_name_adds_faculty():
-    assert group_name("FOOBAR", "CFAT") == "FOOBAR Faculty"
-    assert group_name("FOOBAR", "CFAN") == "FOOBAR Faculty"
+    assert get_group_name("FOOBAR", "CFAT") == "FOOBAR Faculty"
+    assert get_group_name("FOOBAR", "CFAN") == "FOOBAR Faculty"
 
 
 def test_group_name_adds_non_faculty():
-    assert group_name("FOOBAR", "COAC") == "FOOBAR Non-faculty"
+    assert get_group_name("FOOBAR", "COAC") == "FOOBAR Non-faculty"
 
 
 def test_articles_generates_articles():
@@ -189,8 +189,8 @@ def test_articles_generates_articles():
 
 def test_article_feed_adds_article(articles_records, articles_element):
     output_file = BytesIO()
-    with article_feed(output_file) as f:
-        f(articles_records[0])
+    with article_feed(output_file) as write_to_file:
+        write_to_file(articles_records[0])
     assert output_file.getvalue() == ET.tostring(
         articles_element, encoding="UTF-8", xml_declaration=True
     )
