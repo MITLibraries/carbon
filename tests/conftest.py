@@ -8,13 +8,12 @@ import botocore
 import pytest
 import yaml
 from botocore.stub import ANY, Stubber
-from lxml.builder import E as B
 from lxml.builder import ElementMaker
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
 from pyftpdlib.servers import FTPServer
 
-from carbon.db import aa_articles, dlcs, engine, metadata, orcids, persons
+from carbon.database import aa_articles, dlcs, engine, metadata, orcids, persons
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -25,7 +24,7 @@ def _app_init():
 
 @pytest.fixture(autouse=True)
 def _test_env(ftp_server):
-    ftp_socket, ftp_directory = ftp_server
+    ftp_socket, _ = ftp_server
     os.environ["FEED_TYPE"] = "test_feed_type"
     os.environ["LOG_LEVEL"] = "INFO"
     os.environ["SENTRY_DSN"] = "None"
@@ -41,20 +40,138 @@ def _test_env(ftp_server):
     )
 
 
-@pytest.fixture(scope="session")
-def records():
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    data = os.path.join(current_dir, "fixtures/data.yml")
-    with open(data) as fp:
-        return list(yaml.safe_load_all(fp))
+@pytest.fixture
+def _load_data(people_records, articles_records):
+    with closing(engine().connect()) as connection:
+        connection.execute(persons.delete())
+        connection.execute(orcids.delete())
+        connection.execute(dlcs.delete())
+        connection.execute(aa_articles.delete())
+        for record in people_records:
+            connection.execute(persons.insert(), record["person"])
+            connection.execute(orcids.insert(), record["orcid"])
+            connection.execute(dlcs.insert(), record["dlc"])
+        connection.execute(aa_articles.insert(), articles_records)
+        connection.commit()
+    yield
+    with closing(engine().connect()) as connection:
+        connection.execute(persons.delete())
+        connection.execute(orcids.delete())
+        connection.execute(dlcs.delete())
+        connection.execute(aa_articles.delete())
+
+
+@pytest.fixture
+def articles_element():
+    element_maker = ElementMaker()
+    return element_maker.ARTICLES(
+        element_maker.ARTICLE(
+            element_maker.AA_MATCH_SCORE("0.9"),
+            element_maker.ARTICLE_ID("1234567"),
+            element_maker.ARTICLE_TITLE(
+                "Interaction between hatsopoulos microfluids and "
+                "the Yawning Abyss of Chaos ☈."
+            ),
+            element_maker.ARTICLE_YEAR("1999"),
+            element_maker.AUTHORS("McRandallson, Randall M.|Lord, Dark|☭"),
+            element_maker.DOI("10.0000/1234LETTERS56"),
+            element_maker.ISSN_ELECTRONIC("0987654"),
+            element_maker.ISSN_PRINT("01234567"),
+            element_maker.IS_CONFERENCE_PROCEEDING("0"),
+            element_maker.JOURNAL_FIRST_PAGE("666"),
+            element_maker.JOURNAL_LAST_PAGE("666"),
+            element_maker.JOURNAL_ISSUE("10"),
+            element_maker.JOURNAL_VOLUME("1"),
+            element_maker.JOURNAL_NAME("Bunnies"),
+            element_maker.MIT_ID("123456789"),
+            element_maker.PUBLISHER("MIT Press"),
+        )
+    )
 
 
 @pytest.fixture(scope="session")
-def aa_data():
+def articles_records():
     current_dir = os.path.dirname(os.path.realpath(__file__))
     data = os.path.join(current_dir, "fixtures/articles.yml")
-    with open(data) as fp:
-        return list(yaml.safe_load_all(fp))
+    with open(data) as file:
+        return list(yaml.safe_load_all(file))
+
+
+@pytest.fixture
+def people_element_maker():
+    return ElementMaker(
+        namespace="http://www.symplectic.co.uk/hrimporter",
+        nsmap={None: "http://www.symplectic.co.uk/hrimporter"},
+    )
+
+
+@pytest.fixture
+def people_element(people_element_maker):
+    people_elements = [
+        people_element_maker.record(
+            people_element_maker.field("123456", {"name": "[Proprietary_ID]"}),
+            people_element_maker.field("FOOBAR", {"name": "[Username]"}),
+            people_element_maker.field("F B", {"name": "[Initials]"}),
+            people_element_maker.field("Gaz", {"name": "[LastName]"}),
+            people_element_maker.field("Foobar", {"name": "[FirstName]"}),
+            people_element_maker.field("foobar@example.com", {"name": "[Email]"}),
+            people_element_maker.field("MIT", {"name": "[AuthenticatingAuthority]"}),
+            people_element_maker.field("1", {"name": "[IsAcademic]"}),
+            people_element_maker.field("1", {"name": "[IsCurrent]"}),
+            people_element_maker.field("1", {"name": "[LoginAllowed]"}),
+            people_element_maker.field(
+                "Chemistry Faculty", {"name": "[PrimaryGroupDescriptor]"}
+            ),
+            people_element_maker.field("2001-01-01", {"name": "[ArriveDate]"}),
+            people_element_maker.field("2010-01-01", {"name": "[LeaveDate]"}),
+            people_element_maker.field("http://example.com/1", {"name": "[Generic01]"}),
+            people_element_maker.field("CFAT", {"name": "[Generic02]"}),
+            people_element_maker.field("SCIENCE AREA", {"name": "[Generic03]"}),
+            people_element_maker.field("Chemistry", {"name": "[Generic04]"}),
+            people_element_maker.field(name="[Generic05]"),
+        ),
+        people_element_maker.record(
+            people_element_maker.field("098754", name="[Proprietary_ID]"),
+            people_element_maker.field("THOR", name="[Username]"),
+            people_element_maker.field("Þ H", name="[Initials]"),
+            people_element_maker.field("Hammerson", name="[LastName]"),
+            people_element_maker.field("Þorgerðr", name="[FirstName]"),
+            people_element_maker.field("thor@example.com", name="[Email]"),
+            people_element_maker.field("MIT", {"name": "[AuthenticatingAuthority]"}),
+            people_element_maker.field("1", {"name": "[IsAcademic]"}),
+            people_element_maker.field("1", {"name": "[IsCurrent]"}),
+            people_element_maker.field("1", {"name": "[LoginAllowed]"}),
+            people_element_maker.field(
+                "Nuclear Science Non-faculty",
+                {"name": "[PrimaryGroupDescriptor]"},
+            ),
+            people_element_maker.field("2015-01-01", {"name": "[ArriveDate]"}),
+            people_element_maker.field("2999-12-31", {"name": "[LeaveDate]"}),
+            people_element_maker.field("http://example.com/2", {"name": "[Generic01]"}),
+            people_element_maker.field("COAC", {"name": "[Generic02]"}),
+            people_element_maker.field("ENGINEERING AREA", {"name": "[Generic03]"}),
+            people_element_maker.field("Nuclear Science", {"name": "[Generic04]"}),
+            people_element_maker.field(
+                "Nuclear Science and Engineering", {"name": "[Generic05]"}
+            ),
+        ),
+    ]
+
+    return people_element_maker.records(*people_elements)
+
+
+@pytest.fixture(scope="session")
+def people_records():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data = os.path.join(current_dir, "fixtures/data.yml")
+    with open(data) as file:
+        return list(yaml.safe_load_all(file))
+
+
+@pytest.fixture
+def feed_type(request, monkeypatch):
+    monkeypatch.setenv("FEED_TYPE", request.param)
+    return request.param
 
 
 @pytest.fixture(scope="session")
@@ -67,164 +184,48 @@ def ftp_server():
     Use the ``ftp_server`` wrapper fixture instead as it will clean the
     directory before each test.
     """
-    s = socket.socket()
-    s.bind(("", 0))
+    ftp_socket = socket.socket()
+    ftp_socket.bind(("", 0))
     fixtures = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
-    with tempfile.TemporaryDirectory() as d:
+    with tempfile.TemporaryDirectory() as ftp_directory:
         auth = DummyAuthorizer()
-        auth.add_user("user", "pass", d, perm="elradfmwMT")
+        auth.add_user("user", "pass", ftp_directory, perm="elradfmwMT")
         handler = TLS_FTPHandler
         handler.certfile = os.path.join(fixtures, "server.crt")
         handler.keyfile = os.path.join(fixtures, "server.key")
         handler.authorizer = auth
-        server = FTPServer(s, handler)
-        t = threading.Thread(target=server.serve_forever, daemon=1)
-        t.start()
-        yield s.getsockname(), d
+        server = FTPServer(ftp_socket, handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=1)
+        thread.start()
+        yield ftp_socket.getsockname(), ftp_directory
 
 
 @pytest.fixture
 def ftp_server_wrapper(ftp_server):
     """Wrapper around ``_ftp_server`` to clean directory before each test."""
-    d = ftp_server[1]
-    for f in os.listdir(d):
-        fpath = os.path.join(d, f)
-        if os.path.isfile(fpath):
-            os.unlink(fpath)
+    ftp_directory = ftp_server[1]
+    for file in os.listdir(ftp_directory):
+        file_path = os.path.join(ftp_directory, file)
+        if os.path.isfile(file_path):
+            os.unlink(file_path)
     return ftp_server
-
-
-@pytest.fixture
-def _load_data(records, aa_data):
-    with closing(engine().connect()) as connection:
-        connection.execute(persons.delete())
-        connection.execute(orcids.delete())
-        connection.execute(dlcs.delete())
-        connection.execute(aa_articles.delete())
-        for r in records:
-            connection.execute(persons.insert(), r["person"])
-            connection.execute(orcids.insert(), r["orcid"])
-            connection.execute(dlcs.insert(), r["dlc"])
-        connection.execute(aa_articles.insert(), aa_data)
-        connection.commit()
-    yield
-    with closing(engine().connect()) as connection:
-        connection.execute(persons.delete())
-        connection.execute(orcids.delete())
-        connection.execute(dlcs.delete())
-        connection.execute(aa_articles.delete())
-
-
-@pytest.fixture
-def xml_records(e):
-    return [
-        e.record(
-            e.field("123456", {"name": "[Proprietary_ID]"}),
-            e.field("FOOBAR", {"name": "[Username]"}),
-            e.field("F B", {"name": "[Initials]"}),
-            e.field("Gaz", {"name": "[LastName]"}),
-            e.field("Foobar", {"name": "[FirstName]"}),
-            e.field("foobar@example.com", {"name": "[Email]"}),
-            e.field("MIT", {"name": "[AuthenticatingAuthority]"}),
-            e.field("1", {"name": "[IsAcademic]"}),
-            e.field("1", {"name": "[IsCurrent]"}),
-            e.field("1", {"name": "[LoginAllowed]"}),
-            e.field("Chemistry Faculty", {"name": "[PrimaryGroupDescriptor]"}),
-            e.field("2001-01-01", {"name": "[ArriveDate]"}),
-            e.field("2010-01-01", {"name": "[LeaveDate]"}),
-            e.field("http://example.com/1", {"name": "[Generic01]"}),
-            e.field("CFAT", {"name": "[Generic02]"}),
-            e.field("SCIENCE AREA", {"name": "[Generic03]"}),
-            e.field("Chemistry", {"name": "[Generic04]"}),
-            e.field(name="[Generic05]"),
-        ),
-        e.record(
-            e.field("098754", name="[Proprietary_ID]"),
-            e.field("THOR", name="[Username]"),
-            e.field("Þ H", name="[Initials]"),
-            e.field("Hammerson", name="[LastName]"),
-            e.field("Þorgerðr", name="[FirstName]"),
-            e.field("thor@example.com", name="[Email]"),
-            e.field("MIT", {"name": "[AuthenticatingAuthority]"}),
-            e.field("1", {"name": "[IsAcademic]"}),
-            e.field("1", {"name": "[IsCurrent]"}),
-            e.field("1", {"name": "[LoginAllowed]"}),
-            e.field(
-                "Nuclear Science Non-faculty",
-                {"name": "[PrimaryGroupDescriptor]"},
-            ),
-            e.field("2015-01-01", {"name": "[ArriveDate]"}),
-            e.field("2999-12-31", {"name": "[LeaveDate]"}),
-            e.field("http://example.com/2", {"name": "[Generic01]"}),
-            e.field("COAC", {"name": "[Generic02]"}),
-            e.field("ENGINEERING AREA", {"name": "[Generic03]"}),
-            e.field("Nuclear Science", {"name": "[Generic04]"}),
-            e.field("Nuclear Science and Engineering", {"name": "[Generic05]"}),
-        ),
-    ]
-
-
-@pytest.fixture
-def people_data(e, xml_records):
-    return e.records(*xml_records)
-
-
-@pytest.fixture
-def e():
-    return ElementMaker(
-        namespace="http://www.symplectic.co.uk/hrimporter",
-        nsmap={None: "http://www.symplectic.co.uk/hrimporter"},
-    )
-
-
-@pytest.fixture
-def articles_data():
-    return B.ARTICLES(
-        B.ARTICLE(
-            B.AA_MATCH_SCORE("0.9"),
-            B.ARTICLE_ID("1234567"),
-            B.ARTICLE_TITLE(
-                "Interaction between hatsopoulos microfluids and "
-                "the Yawning Abyss of Chaos ☈."
-            ),
-            B.ARTICLE_YEAR("1999"),
-            B.AUTHORS("McRandallson, Randall M.|Lord, Dark|☭"),
-            B.DOI("10.0000/1234LETTERS56"),
-            B.ISSN_ELECTRONIC("0987654"),
-            B.ISSN_PRINT("01234567"),
-            B.IS_CONFERENCE_PROCEEDING("0"),
-            B.JOURNAL_FIRST_PAGE("666"),
-            B.JOURNAL_LAST_PAGE("666"),
-            B.JOURNAL_ISSUE("10"),
-            B.JOURNAL_VOLUME("1"),
-            B.JOURNAL_NAME("Bunnies"),
-            B.MIT_ID("123456789"),
-            B.PUBLISHER("MIT Press"),
-        )
-    )
 
 
 @pytest.fixture
 def reader():
     class Reader:
-        def __init__(self, fp):
-            self.fp = fp
+        def __init__(self, file):
+            self.file = file
             self.data = b""
 
         def __call__(self):
             while 1:
-                data = self.fp.read(1024)
+                data = self.file.read(1024)
                 if not data:
                     break
                 self.data += data
 
     return Reader
-
-
-@pytest.fixture
-def feed_type(request, monkeypatch):
-    monkeypatch.setenv("FEED_TYPE", request.param)
-    return request.param
 
 
 @pytest.fixture

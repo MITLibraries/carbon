@@ -7,7 +7,7 @@ from freezegun import freeze_time
 from lxml import etree as ET
 
 from carbon.cli import main
-from carbon.db import engine
+from carbon.database import engine
 
 
 @pytest.fixture
@@ -24,11 +24,11 @@ def test_people_returns_people(
     feed_type,
     symplectic_ftp_path,
     runner,
-    people_data,
+    people_element,
     ftp_server,
     stubbed_sns_client,
 ):
-    ftp_socket, ftp_directory = ftp_server
+    _, ftp_directory = ftp_server
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -40,7 +40,7 @@ def test_people_returns_people(
         people_element, encoding="UTF-8", xml_declaration=True
     )
     assert people_xml_string == ET.tostring(
-        people_data, encoding="UTF-8", xml_declaration=True
+        people_element, encoding="UTF-8", xml_declaration=True
     )
 
 
@@ -53,11 +53,11 @@ def test_articles_returns_articles(
     feed_type,
     symplectic_ftp_path,
     runner,
-    articles_data,
+    articles_element,
     ftp_server,
     stubbed_sns_client,
 ):
-    ftp_socket, ftp_directory = ftp_server
+    _, ftp_directory = ftp_server
 
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
@@ -69,7 +69,7 @@ def test_articles_returns_articles(
         articles_element, encoding="UTF-8", xml_declaration=True
     )
     assert articles_xml_string == ET.tostring(
-        articles_data, encoding="UTF-8", xml_declaration=True
+        articles_element, encoding="UTF-8", xml_declaration=True
     )
 
 
@@ -114,7 +114,7 @@ def test_cli_connection_tests_success(caplog, runner):
 
 
 def test_cli_connection_tests_fail(caplog, ftp_server, monkeypatch, runner):
-    ftp_socket, ftp_directory = ftp_server
+    ftp_socket, _ = ftp_server
 
     # override engine from pytest fixture
     # configure with connection string that will error out with engine.connect()
