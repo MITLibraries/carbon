@@ -12,7 +12,7 @@ from typing import IO, TYPE_CHECKING, Any
 from lxml import etree as ET  # nosec
 from sqlalchemy import func, select
 
-from carbon.database import aa_articles, dlcs, engine, orcids, persons
+from carbon.database import DatabaseEngine, aa_articles, dlcs, orcids, persons
 from carbon.helpers import get_group_name, get_hire_date_string, get_initials
 
 if TYPE_CHECKING:
@@ -227,7 +227,7 @@ def article_feed(output_file: IO) -> Generator:
             yield partial(_add_article, xml_file)
 
 
-def articles() -> Generator[dict[str, Any], Any, None]:
+def articles(engine: DatabaseEngine) -> Generator[dict[str, Any], Any, None]:
     """Create a generator of article records.
 
     Yields:
@@ -279,7 +279,7 @@ def person_feed(output_file: IO) -> Generator:
             yield partial(_add_person, xml_file)
 
 
-def people() -> Generator[dict[str, Any], Any, None]:
+def people(engine: DatabaseEngine) -> Generator[dict[str, Any], Any, None]:
     """Create a generator of 'people' records.
 
     Yields:
@@ -387,18 +387,19 @@ class Writer:
             strings are written.
     """
 
-    def __init__(self, output_file: IO):
+    def __init__(self, engine: DatabaseEngine, output_file: IO):
         self.output_file = output_file
+        self.engine = engine
 
     def write(self, feed_type: str) -> None:
         """Write the specified feed type to the configured output."""
         if feed_type == "people":
             with person_feed(self.output_file) as f:
-                for person in people():
+                for person in people(engine=self.engine):
                     f(person)
         elif feed_type == "articles":
             with article_feed(self.output_file) as f:
-                for article in articles():
+                for article in articles(engine=self.engine):
                     f(article)
 
 
@@ -415,8 +416,8 @@ class PipeWriter(Writer):
             on the Symplectic Elements FTP server.
     """
 
-    def __init__(self, input_file: IO, ftp_output_file: Callable):
-        super().__init__(input_file)
+    def __init__(self, engine: DatabaseEngine, input_file: IO, ftp_output_file: Callable):
+        super().__init__(engine, input_file)
         self.ftp_output_file = ftp_output_file
 
     def write(self, feed_type: str) -> None:
@@ -492,11 +493,9 @@ class DatabaseToFtpPipe:
         config: A dictionary of required environment variables for running the feed.
     """
 
-    def __init__(
-        self,
-        config: dict,
-    ):
+    def __init__(self, config: dict, engine: DatabaseEngine):
         self.config = config
+        self.engine = engine
 
     def run(self) -> None:
         read_file, write_file = os.pipe()
@@ -512,9 +511,9 @@ class DatabaseToFtpPipe:
                 host=self.config["SYMPLECTIC_FTP_HOST"],
                 port=int(self.config["SYMPLECTIC_FTP_PORT"]),
             )
-            PipeWriter(input_file=buffered_writer, ftp_output_file=ftp_file).write(
-                feed_type=self.config["FEED_TYPE"]
-            )
+            PipeWriter(
+                engine=self.engine, input_file=buffered_writer, ftp_output_file=ftp_file
+            ).write(feed_type=self.config["FEED_TYPE"])
 
     def run_connection_test(self) -> None:
         """Test connection to the Symplectic Elements FTP server.

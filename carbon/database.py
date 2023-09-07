@@ -124,7 +124,3 @@ class DatabaseEngine:
                 version,  # type: ignore[union-attr]
             )
             connection.close()
-
-
-# create the database engine
-engine = DatabaseEngine()

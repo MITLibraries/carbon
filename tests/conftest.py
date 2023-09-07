@@ -13,15 +13,10 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
 from pyftpdlib.servers import FTPServer
 
-from carbon.database import aa_articles, dlcs, engine, metadata, orcids, persons
+from carbon.database import DatabaseEngine, aa_articles, dlcs, metadata, orcids, persons
 
 
-@pytest.fixture(scope="session", autouse=True)
-def _app_init():
-    engine.configure("sqlite://")
-    metadata.create_all(bind=engine())
-
-
+# set environment variables required for testing
 @pytest.fixture(autouse=True)
 def _test_env(ftp_server):
     ftp_socket, _ = ftp_server
@@ -40,9 +35,10 @@ def _test_env(ftp_server):
     )
 
 
+# populate sqlite test database with records
 @pytest.fixture
-def _load_data(people_records, articles_records):
-    with closing(engine().connect()) as connection:
+def _load_data(functional_engine, people_records, articles_records):
+    with closing(functional_engine().connect()) as connection:
         connection.execute(persons.delete())
         connection.execute(orcids.delete())
         connection.execute(dlcs.delete())
@@ -54,13 +50,47 @@ def _load_data(people_records, articles_records):
         connection.execute(aa_articles.insert(), articles_records)
         connection.commit()
     yield
-    with closing(engine().connect()) as connection:
+    with closing(functional_engine().connect()) as connection:
         connection.execute(persons.delete())
         connection.execute(orcids.delete())
         connection.execute(dlcs.delete())
         connection.execute(aa_articles.delete())
 
 
+@pytest.fixture(scope="session")
+def articles_records():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data = os.path.join(current_dir, "fixtures/articles.yml")
+    with open(data) as fp:
+        return list(yaml.safe_load_all(fp))
+
+
+@pytest.fixture(scope="session")
+def people_records():
+    current_dir = os.path.dirname(os.path.realpath(__file__))
+    data = os.path.join(current_dir, "fixtures/data.yml")
+    with open(data) as fp:
+        return list(yaml.safe_load_all(fp))
+
+
+# create engine for tests requiring successful connections to the sqlite test database
+@pytest.fixture(scope="session", autouse=True)
+def functional_engine():
+    engine = DatabaseEngine()
+    engine.configure("sqlite://")
+    metadata.create_all(bind=engine())
+    return engine
+
+
+# create engine for tests requiring failed connections to the sqlite test database
+@pytest.fixture(scope="session")
+def nonfunctional_engine():
+    engine = DatabaseEngine()
+    engine.configure(connection_string="sqlite:///nonexistent_directory/bad.db")
+    return engine
+
+
+# create XML elements representing 'people' and 'articles' records
 @pytest.fixture
 def articles_element():
     element_maker = ElementMaker()
@@ -87,14 +117,6 @@ def articles_element():
             element_maker.PUBLISHER("MIT Press"),
         )
     )
-
-
-@pytest.fixture(scope="session")
-def articles_records():
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    data = os.path.join(current_dir, "fixtures/articles.yml")
-    with open(data) as file:
-        return list(yaml.safe_load_all(file))
 
 
 @pytest.fixture
@@ -160,20 +182,7 @@ def people_element(people_element_maker):
     return people_element_maker.records(*people_elements)
 
 
-@pytest.fixture(scope="session")
-def people_records():
-    current_dir = os.path.dirname(os.path.realpath(__file__))
-    data = os.path.join(current_dir, "fixtures/data.yml")
-    with open(data) as file:
-        return list(yaml.safe_load_all(file))
-
-
-@pytest.fixture
-def feed_type(request, monkeypatch):
-    monkeypatch.setenv("FEED_TYPE", request.param)
-    return request.param
-
-
+# fixtures for mocking an FTP server and a buffered reader
 @pytest.fixture(scope="session")
 def ftp_server():
     """Starts an FTPS server with an empty temp dir.
@@ -228,12 +237,20 @@ def reader():
     return Reader
 
 
+# environment variables that should be updated for certain tests
 @pytest.fixture
 def symplectic_ftp_path(request, monkeypatch):
     monkeypatch.setenv("SYMPLECTIC_FTP_PATH", request.param)
     return request.param
 
 
+@pytest.fixture
+def feed_type(request, monkeypatch):
+    monkeypatch.setenv("FEED_TYPE", request.param)
+    return request.param
+
+
+# AWS stubs for mocking cli requests
 @pytest.fixture
 def stubbed_sns_client():
     stage = os.environ.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
