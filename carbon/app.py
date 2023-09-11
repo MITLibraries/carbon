@@ -118,11 +118,11 @@ class ConcurrentFtpFileWriter(FileWriter):
 
         This method will block until both the reader and writer are finished.
         """
-        pipe = threading.Thread(target=self.ftp_output_file)
-        pipe.start()
+        thread = threading.Thread(target=self.ftp_output_file)
+        thread.start()
         super().write(feed_type)
         self.output_file.close()
-        pipe.join()
+        thread.join()
 
 
 class FtpFile:
@@ -166,6 +166,20 @@ class FtpFile:
         ftps.prot_p()
         ftps.storbinary(cmd=f"STOR {self.path}", fp=self.content_feed)
         ftps.quit()
+
+
+class DatabaseToFilePipe:
+    """A pipe feeding data from the Data Warehouse to a local file."""
+
+    def __init__(self, config: dict, engine: DatabaseEngine, output_file: IO):
+        self.config = config
+        self.engine = engine
+        self.output_file = output_file
+
+    def run(self) -> None:
+        FileWriter(engine=self.engine, output_file=self.output_file).write(
+            feed_type=self.config["FEED_TYPE"]
+        )
 
 
 class DatabaseToFtpPipe:

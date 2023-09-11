@@ -27,7 +27,7 @@ update: install # update all python dependencies
 dependencies: # download Oracle instant client zip
 	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
-## ---- Test commands ---- ##
+## ---- Unit test commands ---- ##
 
 test: # run tests and print coverage report
 	pipenv run coverage run --source=carbon -m pytest -vv
@@ -96,6 +96,12 @@ dist-stage:
 	docker login -u AWS -p $$(aws ecr get-login-password --region us-east-1) $(ECR_URL_STAGE)
 	docker push $(ECR_URL_STAGE):latest
 	docker push $(ECR_URL_STAGE):`git describe --always`
+
+
+## ---- Carbon run commands ---- ##
+
+run-connection-tests-dev: 
+	docker run -v ./.env:/.env carbon-dev --run_connection_tests
 
 run-connection-tests-stage: # use after the Data Warehouse password is changed every year to confirm that the new password works.
 	aws ecs run-task --cluster carbon-ecs-stage --task-definition carbon-ecs-stage-people --launch-type="FARGATE" --region us-east-1 --network-configuration '{"awsvpcConfiguration": {"subnets": ["subnet-05df31ac28dd1a4b0","subnet-04cfa272d4f41dc8a"], "securityGroups": ["sg-0f11e2619db7da196"],"assignPublicIp": "DISABLED"}}' --overrides '{"containerOverrides": [ {"name": "carbon-ecs-stage", "command": ["--run_connection_tests"]}]}'
