@@ -91,10 +91,9 @@ class FileWriter:
         elif feed_type == "articles":
             xml_feed = ArticlesXmlFeed(engine=self.engine, output_file=self.output_file)
             xml_feed.run()
-        xml_feed_record_count_message = (
-            f"The feed has collected {xml_feed.record_count} '{feed_type}' records."
+        logger.info(
+            "The feed has collected %s '%s' records", xml_feed.record_count, feed_type
         )
-        logger.info(xml_feed_record_count_message)
 
 
 class ConcurrentFtpFileWriter(FileWriter):

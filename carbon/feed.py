@@ -33,7 +33,7 @@ class BaseXmlFeed(ABC):
 
     """
 
-    root_element_name: str | ET.QName = ""
+    root_element_name: str = ""
     query: Select = select()
     record_count: int = 0
 
@@ -241,7 +241,7 @@ class PeopleXmlFeed(BaseXmlFeed):
     symplectic_elements_namespace: str = "http://www.symplectic.co.uk/hrimporter"
     namespace_mapping: ClassVar[dict] = {None: symplectic_elements_namespace}
 
-    root_element_name: ET.QName = ET.QName(symplectic_elements_namespace, tag="records")
+    root_element_name: str = str(ET.QName(symplectic_elements_namespace, tag="records"))
     query = (
         select(
             persons.c.MIT_ID,
