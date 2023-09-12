@@ -92,31 +92,36 @@ def nonfunctional_engine():
 
 # create XML elements representing 'people' and 'articles' records
 @pytest.fixture
-def articles_element():
-    element_maker = ElementMaker()
-    return element_maker.ARTICLES(
-        element_maker.ARTICLE(
-            element_maker.AA_MATCH_SCORE("0.9"),
-            element_maker.ARTICLE_ID("1234567"),
-            element_maker.ARTICLE_TITLE(
+def articles_element_maker():
+    return ElementMaker()
+
+
+@pytest.fixture
+def articles_element(articles_element_maker):
+    articles_elements = [
+        articles_element_maker.ARTICLE(
+            articles_element_maker.AA_MATCH_SCORE("0.9"),
+            articles_element_maker.ARTICLE_ID("1234567"),
+            articles_element_maker.ARTICLE_TITLE(
                 "Interaction between hatsopoulos microfluids and "
                 "the Yawning Abyss of Chaos ☈."
             ),
-            element_maker.ARTICLE_YEAR("1999"),
-            element_maker.AUTHORS("McRandallson, Randall M.|Lord, Dark|☭"),
-            element_maker.DOI("10.0000/1234LETTERS56"),
-            element_maker.ISSN_ELECTRONIC("0987654"),
-            element_maker.ISSN_PRINT("01234567"),
-            element_maker.IS_CONFERENCE_PROCEEDING("0"),
-            element_maker.JOURNAL_FIRST_PAGE("666"),
-            element_maker.JOURNAL_LAST_PAGE("666"),
-            element_maker.JOURNAL_ISSUE("10"),
-            element_maker.JOURNAL_VOLUME("1"),
-            element_maker.JOURNAL_NAME("Bunnies"),
-            element_maker.MIT_ID("123456789"),
-            element_maker.PUBLISHER("MIT Press"),
+            articles_element_maker.ARTICLE_YEAR("1999"),
+            articles_element_maker.AUTHORS("McRandallson, Randall M.|Lord, Dark|☭"),
+            articles_element_maker.DOI("10.0000/1234LETTERS56"),
+            articles_element_maker.ISSN_ELECTRONIC("0987654"),
+            articles_element_maker.ISSN_PRINT("01234567"),
+            articles_element_maker.IS_CONFERENCE_PROCEEDING("0"),
+            articles_element_maker.JOURNAL_FIRST_PAGE("666"),
+            articles_element_maker.JOURNAL_LAST_PAGE("666"),
+            articles_element_maker.JOURNAL_ISSUE("10"),
+            articles_element_maker.JOURNAL_VOLUME("1"),
+            articles_element_maker.JOURNAL_NAME("Bunnies"),
+            articles_element_maker.MIT_ID("123456789"),
+            articles_element_maker.PUBLISHER("MIT Press"),
         )
-    )
+    ]
+    return articles_element_maker.ARTICLES(*articles_elements)
 
 
 @pytest.fixture
