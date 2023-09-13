@@ -100,7 +100,7 @@ dist-stage:
 
 ## ---- Carbon run commands ---- ##
 
-run-connection-tests-dev: 
+run-connection-tests-local: 
 	docker run -v ./.env:/.env carbon-dev --run_connection_tests
 
 run-connection-tests-stage: # use after the Data Warehouse password is changed every year to confirm that the new password works.

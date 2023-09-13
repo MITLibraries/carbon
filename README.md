@@ -23,17 +23,19 @@ The test suite uses SQLite, so you can develop and test without connecting to th
 
 ### Running the application on your local machine
 
-1. Export AWS credentials for the `Dev1` environment.
+1. Export AWS credentials for the `Dev1` environment. For local runs, the `AWS_DEFAULT_REGION` environmnet variable must also be set.
+
 2. Create a `.env` file at the root folder of the Carbon repo, and set the required environment variables described in [Required Env](#required-env).
 
    **Note**: The host for the Data Warehouse is different when connecting from outside of AWS (which uses Cloudconnector). For assistance, reach out to the [Data Warehouse team](https://ist.mit.edu/warehouse).
 
-3. If the run requires a connection to the Data Warehouse, connect to an approved VPN client. Otherwise, skip this step.
+3. Connect to an approved [VPN client](https://ist.mit.edu/vpn). 
+
 4. Follow the steps relevant to the machine you are running:
-   * If you are on a machine that cannot run Oracle Instant Client, follow the steps outlined in [With Docker](#with-docker).
+   * If you are on a machine that cannot run Oracle Instant Client, follow the steps outlined in [With Docker](#with-docker). When running the application locally, skip the step to run `make publish-dev` as it is not necessary to publish the container to ECR. 
 
       **Note**: As of this writing, Apple M1 Macs cannot run Oracle Instant Client.
-   * If you are on a machine that can run Oracle Instant Client, follow the steps outlined in [Without Docker](#without-docker): 
+   * If you are on a machine that can run Oracle Instant Client, follow the steps outlined in [Without Docker](#without-docker).
 
 #### With Docker
 
@@ -43,13 +45,13 @@ The test suite uses SQLite, so you can develop and test without connecting to th
 
 3. Run `make publish-dev` to push the Docker container image to ECR for the `Dev1` environment. 
 
-4. Run any `make` commands for testing the application. In the Makefile, the make commands will be appended with '-dev' (e.g. `run-connection-tests-dev`).
+4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-local'.
 
 #### Without Docker
 
 1. Download [Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client/downloads.html) (basiclite is sufficient) and set the `ORACLE_LIB_DIR` env variable.
 
-2. Run `pipenv run carbon`.
+2. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-local'.
 
 ### Running the application as an ECS task
 
@@ -61,7 +63,7 @@ The application can be run as an ECS task. Any runs that require a connection to
 
 3. Run `make publish-stage` to push the Docker container image to ECR for the `stage` environment.
 
-4. Run any `make` commands with calls to `aws ecs run-task --cluster carbon-ecs-stage ...` for testing the application.
+4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-stage' (e.g. `run-connection-tests-stage`).
 
 For an example, see [Connecting to the Data Warehouse](#connecting-to-the-data-warehouse).
 
@@ -92,23 +94,25 @@ The password for the Data Warehouse is updated each year. To verify that the upd
 
 ## Required ENV
 
-* `FEED_TYPE` = The type of feed and is set to either "people" or "articles".
-* `DATAWAREHOUSE_CLOUDCONNECTOR_JSON`: A JSON formatted collection of key/value pairs for the MIT Data Warehouse connection through CloudConnector. The key/value pairs are:
-   * `USER`: The username for accessing the Data Warehouse database.
-   * `PASSWORD`: The password for accessing the Data Warehouse database.
-   * `HOST`: The host for the Data Warehouse database.
-   * `PORT`: The port for accessing the Data Warehouse database.
-   * `PATH`: The Oracle system identifier (SID) for the Data Warehouse database.
-   * `CONNECTION_STRING` = The connection string of the form `oracle://<username>:<password>@<host>:1521/<sid>` for the Data Warehouse.
-* `SNS_TOPIC` = The ARN for the SNS topic used for sending email notifications.
-* `SYMPLECTIC_FTP_JSON`: A JSON formatted collection of key/value pairs for connecting to the Symplectic Elements FTP server.
-   * `SYMPLECTIC_FTP_HOST` = The hostname of the Symplectic FTP server.
-   * `SYMPLECTIC_FTP_PORT` = The port of the Symplectic FTP server.
-   * `SYMPLECTIC_FTP_USER` = The username for accessing the Symplectic FTP server.
-   * `SYMPLECTIC_FTP_PASS` = The password for accessing the Symplectic FTP server.
-* `SYMPLECTIC_FTP_PATH` = The full file path to the XML file (including the file name) that is uploaded to the Symplectic FTP server.
-* `WORKSPACE` = Set to `dev` for local development. This will be set to `stage` and `prod` in those environments by Terraform.
+```
+# The type of feed and is set to either "people" or "articles"
+FEED_TYPE="people"
 
+# A JSON formatted string of key/value pairs for the MIT Data Warehouse connection through Cloudconnector
+DATAWAREHOUSE_CLOUDCONNECTOR_JSON='{"USER": "<VALID_DATAWAREHOUSE_USERNAME>", "PASSWORD": "<VALID_DATAWAREHOUSE_PASSWORD>", "HOST": "<VALID_DATAWAREHOUSE_HOST>", "PORT": "<VALID_DATAWAREHOUSE_PORT>", "PATH": "<VALID_DATAWAREHOUSE_ORACLE_SID>", "CONNECTION_STRING": "<VALID_DATAWAREHOUSE_CONNECTION_STRING>"}'
+
+# The ARN for the SNS topic used for sending email notifications.
+SNS_TOPIC=""
+
+# A JSON formatted string of key/value pairs for connecting to the Symplectic Elements FTP server
+SYMPLECTIC_FTP_JSON='{"SYMPLECTIC_FTP_HOST": "<VALID_ELEMENTS_FTP_HOST>", "SYMPLECTIC_FTP_PORT": "<VALID_ELEMENTS_FTP_PORT>", "SYMPLECTIC_FTP_USER": "<VALID_ELEMENTS_FTP_USER>", "SYMPLECTIC_FTP_PASS": "<VALID_ELEMENTS_FTP_PASSWORD>"}'
+
+# The full file path to the XML file (including the file name) that is uploaded to the Symplectic FTP server
+SYMPLECTIC_FTP_PATH="<FTP_FILE_DIRECTORY>/people.xml"
+
+# This is a value that Terraform provides to all the other Python apps and is also used in logging
+WORKSPACE= "dev"
+```
 
 ## Optional ENV
 
