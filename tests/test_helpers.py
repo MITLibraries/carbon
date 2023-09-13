@@ -29,14 +29,15 @@ def test_initials_returns_first_and_middle():
 
 
 @freeze_time("2023-08-18")
-def test_sns_log(caplog, stubbed_sns_client):
+def test_sns_log_returns_start_message(stubbed_sns_client):
     config_values = load_config_values()
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client
-        sns_log(config_values, status="start")
+        sns_start_response = sns_log(config_values, status="start")
+        assert sns_start_response["MessageId"] == "StartMessageId"
 
-        sns_log(config_values, status="success")
-        assert "Carbon run has successfully completed." in caplog.text
+        sns_success_response = sns_log(config_values, status="success")
+        assert sns_success_response["MessageId"] == "SuccessMessageId"
 
-        sns_log(config_values, status="fail")
-        assert "Carbon run has failed." in caplog.text
+        sns_fail_response = sns_log(config_values, status="fail")
+        assert sns_fail_response["MessageId"] == "FailMessageId"

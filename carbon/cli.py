@@ -30,7 +30,16 @@ logger = logging.getLogger(__name__)
     help="Test connection to the Data Warehouse and the Symplectic Elements FTP server",
     is_flag=True,
 )
-def main(*, output_file: IO, run_connection_tests: bool) -> None:
+@click.option(
+    "--use_sns_logging/--ignore_sns_logging",
+    help=(
+        "Turn on SNS logging. If SNS logging is used, notification emails "
+        "indicating the start and result of a Carbon run will be sent to subscribers "
+        "for the Carbon topic. Defaults to True."
+    ),
+    default=True,
+)
+def main(*, output_file: IO, run_connection_tests: bool, use_sns_logging: bool) -> None:
     """Generate a data feed that uploads XML files to the Symplectic Elements FTP server.
 
     The feed uses a SQLAlchemy engine to connect to the Data Warehouse. A query is
@@ -76,10 +85,16 @@ def main(*, output_file: IO, run_connection_tests: bool) -> None:
         pipe.run_connection_test()
 
     if not run_connection_tests:
-        sns_log(config_values=config_values, status="start")
+        logger.info("Carbon run has started.")
+        if use_sns_logging:
+            sns_log(config_values=config_values, status="start")
         try:
             pipe.run()
         except Exception as error:  # noqa: BLE001
-            sns_log(config_values=config_values, status="fail", error=error)
+            logger.info("Carbon run has failed.")
+            if use_sns_logging:
+                sns_log(config_values=config_values, status="fail", error=error)
         else:
-            sns_log(config_values=config_values, status="success")
+            logger.info("Carbon run has successfully completed.")
+            if use_sns_logging:
+                sns_log(config_values=config_values, status="success")

@@ -7,7 +7,7 @@ from contextlib import closing
 import botocore
 import pytest
 import yaml
-from botocore.stub import ANY, Stubber
+from botocore.stub import Stubber
 from lxml.builder import ElementMaker
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
@@ -265,16 +265,7 @@ def stubbed_sns_client():
         "sns", region_name="us-east-1"
     )
 
-    expected_response = {
-        "MessageId": "47e1b891-31aa-41d6-a5bf-d35b95d1027d",
-        "ResponseMetadata": {
-            "RequestId": "f187a3c1-376f-11df-8963-01868b7c937a",
-            "HTTPStatusCode": 200,
-            "RetryAttempts": 0,
-        },
-    }
-
-    expected_start_params = {
+    expected_start_request = {
         "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
         "Subject": "Carbon run",
         "Message": (
@@ -282,23 +273,37 @@ def stubbed_sns_client():
             f"{feed} feed in the {stage} environment."
         ),
     }
+    expected_start_response = {"MessageId": "StartMessageId"}
+
+    expected_success_request = {
+        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
+        "Subject": "Carbon run",
+        "Message": (
+            f"[2023-08-18T00:00:00+00:00] Finished carbon run for the "
+            f"{feed} feed in the {stage} environment."
+        ),
+    }
+    expected_success_response = {"MessageId": "SuccessMessageId"}
 
     # ANY is used because 'Message' parameter expects a single value
     # the second call to sns_log will submit a fail or success message
-    expected_fail_or_success_params = {
+    expected_fail_request = {
         "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
         "Subject": "Carbon run",
-        "Message": ANY,
+        "Message": (
+            f"[2023-08-18T00:00:00+00:00] The following problem was "
+            f"encountered during the carbon run for the {feed} feed "
+            f"in the {stage} environment: {None}."
+        ),
     }
+    expected_fail_response = {"MessageId": "FailMessageId"}
 
     with Stubber(sns_client) as stubber:
         # number of responses in stubber must equal number of calls to sns_log
         # responses are returned first in, first out
-        stubber.add_response("publish", expected_response, expected_start_params)
+        stubber.add_response("publish", expected_start_response, expected_start_request)
         stubber.add_response(
-            "publish", expected_response, expected_fail_or_success_params
+            "publish", expected_success_response, expected_success_request
         )
-        stubber.add_response(
-            "publish", expected_response, expected_fail_or_success_params
-        )
+        stubber.add_response("publish", expected_fail_response, expected_fail_request)
         yield sns_client
