@@ -29,15 +29,56 @@ def test_initials_returns_first_and_middle():
 
 
 @freeze_time("2023-08-18")
-def test_sns_log_publishes_status_messages(stubbed_sns_client):
+def test_sns_log_publishes_status_message_start(stubbed_sns_client_start):
     config_values = load_config_values()
     with patch("boto3.client") as mocked_boto_client:
-        mocked_boto_client.return_value = stubbed_sns_client
+        mocked_boto_client.return_value = stubbed_sns_client_start
+
+        sns_start_response = sns_log(config_values, status="start")
+        assert sns_start_response["MessageId"] == "StartMessageId"
+
+
+@freeze_time("2023-08-18")
+def test_sns_log_publishes_status_message_success(stubbed_sns_client_success):
+    config_values = load_config_values()
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client_success
+
+        sns_success_response = sns_log(config_values, status="success")
+        assert sns_success_response["MessageId"] == "SuccessMessageId"
+
+
+@freeze_time("2023-08-18")
+def test_sns_log_publishes_status_message_fail(stubbed_sns_client_fail):
+    config_values = load_config_values()
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client_fail
+
+        sns_fail_response = sns_log(config_values, status="fail")
+        assert sns_fail_response["MessageId"] == "FailMessageId"
+
+
+@freeze_time("2023-08-18")
+def test_sns_log_message_flow_success(stubbed_sns_client_start_success):
+    config_values = load_config_values()
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client_start_success
+
         sns_start_response = sns_log(config_values, status="start")
         assert sns_start_response["MessageId"] == "StartMessageId"
 
         sns_success_response = sns_log(config_values, status="success")
         assert sns_success_response["MessageId"] == "SuccessMessageId"
+
+
+@freeze_time("2023-08-18")
+def test_sns_log_message_flow_fail(stubbed_sns_client_start_fail):
+    config_values = load_config_values()
+    with patch("boto3.client") as mocked_boto_client:
+        mocked_boto_client.return_value = stubbed_sns_client_start_fail
+
+        sns_start_response = sns_log(config_values, status="start")
+        assert sns_start_response["MessageId"] == "StartMessageId"
 
         sns_fail_response = sns_log(config_values, status="fail")
         assert sns_fail_response["MessageId"] == "FailMessageId"
