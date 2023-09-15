@@ -29,7 +29,7 @@ def test_initials_returns_first_and_middle():
 
 
 @freeze_time("2023-08-18")
-def test_sns_log_returns_start_message(stubbed_sns_client):
+def test_sns_log_publishes_status_messages(stubbed_sns_client):
     config_values = load_config_values()
     with patch("boto3.client") as mocked_boto_client:
         mocked_boto_client.return_value = stubbed_sns_client

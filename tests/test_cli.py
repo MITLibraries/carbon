@@ -117,6 +117,78 @@ def test_file_is_ftped(
     assert os.path.exists(os.path.join(ftp_directory, "people.xml"))
 
 
+@freeze_time("2023-08-18")
+@pytest.mark.parametrize(
+    ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
+)
+@pytest.mark.usefixtures("_load_data")
+def test_cli_sns_log_is_used_by_default(
+    feed_type,
+    symplectic_ftp_path,
+    ftp_server,
+    functional_engine,
+    monkeypatch,
+    runner,
+    stubbed_sns_client,
+):
+    ftp_socket, _ = ftp_server
+
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
+    )
+
+    with patch("boto3.client") as mocked_boto_client, patch(
+        "carbon.cli.DatabaseEngine"
+    ) as mocked_engine:
+        mocked_boto_client.return_value = stubbed_sns_client
+        mocked_engine.return_value = functional_engine
+        result = runner.invoke(main)
+        assert result.exit_code == 0
+        mocked_boto_client.assert_called()
+
+
+@freeze_time("2023-08-18")
+@pytest.mark.parametrize(
+    ("feed_type", "symplectic_ftp_path"), [("people", "/people.xml")], indirect=True
+)
+@pytest.mark.usefixtures("_load_data")
+def test_cli_sns_log_is_ignored_with_flag(
+    feed_type,
+    symplectic_ftp_path,
+    ftp_server,
+    functional_engine,
+    monkeypatch,
+    runner,
+    stubbed_sns_client,
+):
+    ftp_socket, _ = ftp_server
+
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
+    )
+
+    with patch("boto3.client") as mocked_boto_client, patch(
+        "carbon.cli.DatabaseEngine"
+    ) as mocked_engine:
+        mocked_boto_client.return_value = stubbed_sns_client
+        mocked_engine.return_value = functional_engine
+        result = runner.invoke(main, ["--ignore_sns_logging"])
+        assert result.exit_code == 0
+        mocked_boto_client.assert_not_called()
+
+
 def test_cli_connection_tests_success(caplog, functional_engine, runner):
     with patch("carbon.cli.DatabaseEngine") as mocked_engine:
         mocked_engine.return_value = functional_engine

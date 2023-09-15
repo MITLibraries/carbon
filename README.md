@@ -45,13 +45,13 @@ The test suite uses SQLite, so you can develop and test without connecting to th
 
 3. Run `make publish-dev` to push the Docker container image to ECR for the `Dev1` environment. 
 
-4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-local'.
+4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-with-docker'.
 
 #### Without Docker
 
 1. Download [Oracle Instant Client](https://www.oracle.com/database/technologies/instant-client/downloads.html) (basiclite is sufficient) and set the `ORACLE_LIB_DIR` env variable.
 
-2. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-local'.
+2. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-with-docker'.
 
 ### Running the application as an ECS task
 
@@ -63,7 +63,7 @@ The application can be run as an ECS task. Any runs that require a connection to
 
 3. Run `make publish-stage` to push the Docker container image to ECR for the `stage` environment.
 
-4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-stage' (e.g. `run-connection-tests-stage`).
+4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-with-ecs-stage' (e.g. `run-connection-tests-with-ecs-stage`).
 
 For an example, see [Connecting to the Data Warehouse](#connecting-to-the-data-warehouse).
 
@@ -85,7 +85,7 @@ The password for the Data Warehouse is updated each year. To verify that the upd
 
 1. Export AWS credentials for the `stage` environment. The `ECR_NAME_STAGE` and `ECR_URL_STAGE` environment variables must also be set. The values correspond to the 'Repository name' and 'URI' indicated on ECR for the container image, respectively.
 2. Run `make install`.
-3. Run `make run-connection-tests-stage`.
+3. Run `make run-connection-tests-with-ecs-stage`.
 4. View the logs from the ECS task run on CloudWatch.
    * On CloudWatch, select the `carbon-ecs-stage` log group.
    * Select the most recent log stream.
@@ -95,23 +95,22 @@ The password for the Data Warehouse is updated each year. To verify that the upd
 ## Required ENV
 
 ```
-# The type of feed and is set to either "people" or "articles"
+WORKSPACE= "dev"
+
+# type of feed, either "people" or "articles"
 FEED_TYPE="people"
 
-# A JSON formatted string of key/value pairs for the MIT Data Warehouse connection through Cloudconnector
+# JSON formatted string of key/value pairs for the MIT Data Warehouse connection
 DATAWAREHOUSE_CLOUDCONNECTOR_JSON='{"USER": "<VALID_DATAWAREHOUSE_USERNAME>", "PASSWORD": "<VALID_DATAWAREHOUSE_PASSWORD>", "HOST": "<VALID_DATAWAREHOUSE_HOST>", "PORT": "<VALID_DATAWAREHOUSE_PORT>", "PATH": "<VALID_DATAWAREHOUSE_ORACLE_SID>", "CONNECTION_STRING": "<VALID_DATAWAREHOUSE_CONNECTION_STRING>"}'
-
-# The ARN for the SNS topic used for sending email notifications.
-SNS_TOPIC=""
 
 # A JSON formatted string of key/value pairs for connecting to the Symplectic Elements FTP server
 SYMPLECTIC_FTP_JSON='{"SYMPLECTIC_FTP_HOST": "<VALID_ELEMENTS_FTP_HOST>", "SYMPLECTIC_FTP_PORT": "<VALID_ELEMENTS_FTP_PORT>", "SYMPLECTIC_FTP_USER": "<VALID_ELEMENTS_FTP_USER>", "SYMPLECTIC_FTP_PASS": "<VALID_ELEMENTS_FTP_PASSWORD>"}'
 
-# The full file path to the XML file (including the file name) that is uploaded to the Symplectic FTP server
+# full XML file path that is uploaded to the Symplectic Elements FTP server
 SYMPLECTIC_FTP_PATH="<FTP_FILE_DIRECTORY>/people.xml"
 
-# This is a value that Terraform provides to all the other Python apps and is also used in logging
-WORKSPACE= "dev"
+# SNS topic ARN used for sending email notifications.
+SNS_TOPIC="<VALID_SNS_TOPIC_ARN>"
 ```
 
 ## Optional ENV
