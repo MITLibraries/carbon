@@ -7,7 +7,7 @@ from contextlib import closing
 import botocore
 import pytest
 import yaml
-from botocore.stub import ANY, Stubber
+from botocore.stub import Stubber
 from lxml.builder import ElementMaker
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
@@ -256,49 +256,90 @@ def feed_type(request, monkeypatch):
 
 
 # AWS stubs for mocking cli requests
-@pytest.fixture
-def stubbed_sns_client():
-    stage = os.environ.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
+def setup_stubbed_sns_client(actions):
     feed = os.environ.get("FEED_TYPE", "")
-
+    stage = os.environ.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
+    request_response_payloads = {
+        "start": (
+            {
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
+                "Subject": "Carbon run",
+                "Message": (
+                    f"[2023-08-18T00:00:00+00:00] Starting carbon run for the "
+                    f"{feed} feed in the {stage} environment."
+                ),
+            },
+            {"MessageId": "StartMessageId"},
+        ),
+        "success": (
+            {
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
+                "Subject": "Carbon run",
+                "Message": (
+                    f"[2023-08-18T00:00:00+00:00] Finished carbon run for the "
+                    f"{feed} feed in the {stage} environment."
+                ),
+            },
+            {"MessageId": "SuccessMessageId"},
+        ),
+        "fail": (
+            {
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
+                "Subject": "Carbon run",
+                "Message": (
+                    f"[2023-08-18T00:00:00+00:00] The following problem was "
+                    f"encountered during the carbon run for the {feed} feed "
+                    f"in the {stage} environment: {None}."
+                ),
+            },
+            {"MessageId": "FailMessageId"},
+        ),
+    }
     sns_client = botocore.session.get_session().create_client(
         "sns", region_name="us-east-1"
     )
-
-    expected_response = {
-        "MessageId": "47e1b891-31aa-41d6-a5bf-d35b95d1027d",
-        "ResponseMetadata": {
-            "RequestId": "f187a3c1-376f-11df-8963-01868b7c937a",
-            "HTTPStatusCode": 200,
-            "RetryAttempts": 0,
-        },
-    }
-
-    expected_start_params = {
-        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
-        "Subject": "Carbon run",
-        "Message": (
-            f"[2023-08-18T00:00:00+00:00] Starting carbon run for the "
-            f"{feed} feed in the {stage} environment."
-        ),
-    }
-
-    # ANY is used because 'Message' parameter expects a single value
-    # the second call to sns_log will submit a fail or success message
-    expected_fail_or_success_params = {
-        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test_sns_topic",
-        "Subject": "Carbon run",
-        "Message": ANY,
-    }
-
-    with Stubber(sns_client) as stubber:
-        # number of responses in stubber must equal number of calls to sns_log
-        # responses are returned first in, first out
-        stubber.add_response("publish", expected_response, expected_start_params)
+    stubber = Stubber(sns_client)
+    for action in actions:
+        request, response = request_response_payloads[action]
         stubber.add_response(
-            "publish", expected_response, expected_fail_or_success_params
+            "publish",
+            response,
+            request,
         )
-        stubber.add_response(
-            "publish", expected_response, expected_fail_or_success_params
-        )
+    stubber.activate()
+    return sns_client, stubber
+
+
+@pytest.fixture
+def stubbed_sns_client_start():
+    sns_client, stubber = setup_stubbed_sns_client(["start"])
+    with stubber:
+        yield sns_client
+
+
+@pytest.fixture
+def stubbed_sns_client_success():
+    sns_client, stubber = setup_stubbed_sns_client(["success"])
+    with stubber:
+        yield sns_client
+
+
+@pytest.fixture
+def stubbed_sns_client_fail():
+    sns_client, stubber = setup_stubbed_sns_client(["fail"])
+    with stubber:
+        yield sns_client
+
+
+@pytest.fixture
+def stubbed_sns_client_start_success():
+    sns_client, stubber = setup_stubbed_sns_client(["start", "success"])
+    with stubber:
+        yield sns_client
+
+
+@pytest.fixture
+def stubbed_sns_client_start_fail():
+    sns_client, stubber = setup_stubbed_sns_client(["start", "fail"])
+    with stubber:
         yield sns_client

@@ -6,8 +6,6 @@ import sentry_sdk
 
 ENV_VARS = [
     "FEED_TYPE",
-    "LOG_LEVEL",
-    "SENTRY_DSN",
     "SNS_TOPIC",
     "SYMPLECTIC_FTP_PATH",
     "WORKSPACE",

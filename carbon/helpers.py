@@ -89,7 +89,7 @@ def get_initials(*args: str) -> str:
 
 def sns_log(
     config_values: dict[str, Any], status: str, error: Exception | None = None
-) -> None:
+) -> dict | None:
     """Send a message to an Amazon SNS topic about the status of the Carbon run.
 
     When Carbon is run in the 'stage' environment, subscribers to the 'carbon-ecs-stage'
@@ -115,7 +115,7 @@ def sns_log(
     feed = config_values.get("FEED_TYPE", "")
 
     if status == "start":
-        sns_client.publish(
+        return sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
             Message=(
@@ -123,8 +123,8 @@ def sns_log(
                 f"{feed} feed in the {stage} environment."
             ),
         )
-    elif status == "success":
-        sns_client.publish(
+    if status == "success":
+        return sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
             Message=(
@@ -132,9 +132,8 @@ def sns_log(
                 f"{feed} feed in the {stage} environment."
             ),
         )
-        logger.info("Carbon run has successfully completed.")
-    elif status == "fail":
-        sns_client.publish(
+    if status == "fail":
+        return sns_client.publish(
             TopicArn=sns_id,
             Subject="Carbon run",
             Message=(
@@ -143,4 +142,4 @@ def sns_log(
                 f"in the {stage} environment: {error}."
             ),
         )
-        logger.info("Carbon run has failed.")
+    return None
