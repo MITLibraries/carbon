@@ -114,6 +114,7 @@ class DatabaseEngine:
         except Exception as error:
             error_message = f"Failed to connect to the Data Warehouse: {error}"
             logger.exception(error_message)
+            raise
         else:
             dbapi_connection = connection.connection
             version = (
