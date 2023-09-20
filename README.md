@@ -7,6 +7,43 @@ Carbon is a tool for loading data into [Symplectic Elements](https://support.sym
 
 Please refer to the [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon) for the deployment configuration.
 
+For more information on the Carbon application, please refer to our [internal documentation on Confluence](https://mitlibraries.atlassian.net/l/cp/1E6cMvuT).
+
+## Data flow
+
+This flowchart depicts the data flow from MIT's Data Warehouse to the application's in-memory buffered streams and to the final location of the output file, an XML file on the Elements FTP server.
+
+```mermaid
+---
+title:
+---
+
+flowchart TB
+   subgraph ext-source[Database]
+      mit-dwrhs[(MIT Data Warehouse)]
+   end
+   
+   subgraph in-memory[Application In-memory]
+      direction TB
+      rec-generator([Record generator])
+      buffered-writer([Buffered Writer])
+      buffered-reader([Buffered Reader])
+   end
+
+   subgraph elements-ftp[Elements FTP server]
+      direction TB
+      xml-file([Feed XML file])
+   end
+
+   mit-dwrhs -->|Fetch query results | rec-generator
+   rec-generator-->|Yielding records one at a time, <br> transform record into normalized XML strings <br> and write to a file| buffered-writer
+   buffered-writer -->|Stream contents from file to another read end of pipe| buffered-reader
+   buffered-reader -->|Stream contents from read end of pipe to an XML file on FTP server|xml-file
+
+
+```
+
+
 ## Development
 
 * To install with dev dependencies: `make install`
