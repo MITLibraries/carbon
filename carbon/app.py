@@ -244,6 +244,7 @@ class DatabaseToFtpPipe:
                 f"Failed to connect to the Symplectic Elements FTP server: {error}"
             )
             logger.exception(error_message)
+            raise
         else:
             logger.info("Successfully connected to the Symplectic Elements FTP server")
             ftps.quit()
