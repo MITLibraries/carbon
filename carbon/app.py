@@ -46,26 +46,6 @@ class CarbonFtpsTls(FTP_TLS):
             )
         return conn, size
 
-    def storbinary(
-        self,
-        cmd: str,
-        fp: IO,  # type: ignore[override]
-        blocksize: int = 8192,
-        callback: Callable | None = None,
-        rest: str | None = None,  # type: ignore[override]
-    ) -> str:
-        """Store a file in binary mode."""
-        self.voidcmd("TYPE I")
-        with self.transfercmd(cmd, rest) as conn:
-            while 1:
-                buf = fp.read(blocksize)
-                if not buf:
-                    break
-                conn.sendall(buf)
-                if callback:
-                    callback(buf)
-        return self.voidresp()
-
 
 class FileWriter:
     """A writer that outputs normalized XML strings to a specified file.
@@ -91,8 +71,11 @@ class FileWriter:
         elif feed_type == "articles":
             xml_feed = ArticlesXmlFeed(engine=self.engine, output_file=self.output_file)
             xml_feed.run()
+
         logger.info(
-            "The feed has collected %s '%s' records", xml_feed.record_count, feed_type
+            "The '%s' feed has processed %s records.",
+            feed_type,
+            xml_feed.processed_record_count,
         )
 
 
@@ -164,8 +147,17 @@ class FtpFile:
         ftps.connect(host=self.host, port=self.port)
         ftps.login(user=self.user, passwd=self.password)
         ftps.prot_p()
-        ftps.storbinary(cmd=f"STOR {self.path}", fp=self.content_feed)
-        ftps.quit()
+        try:
+            ftps.storbinary(cmd=f"STOR {self.path}", fp=self.content_feed)
+        except TimeoutError:
+            logger.warning(
+                "Timeout occurred but XML file may have been uploaded anyway. \
+                        Please check the Elements FTP server to confirm."
+            )
+        except Exception:
+            raise
+        else:
+            ftps.quit()
 
 
 class DatabaseToFilePipe:

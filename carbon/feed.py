@@ -35,7 +35,7 @@ class BaseXmlFeed(ABC):
 
     root_element_name: str = ""
     query: Select = select()
-    record_count: int = 0
+    processed_record_count: int = 0
 
     def __init__(self, engine: DatabaseEngine, output_file: IO):
         self.engine = engine
@@ -52,7 +52,6 @@ class BaseXmlFeed(ABC):
         with closing(self.engine().connect()) as connection:
             result = connection.execute(self.query)
             for row in result:
-                self.record_count += 1
                 yield dict(zip(result.keys(), row, strict=True))
 
     @abstractmethod
@@ -101,6 +100,7 @@ class BaseXmlFeed(ABC):
                 for record in self.records:
                     element = self._add_element(record)
                     xml_file.write(element)
+                    self.processed_record_count += 1
 
 
 class ArticlesXmlFeed(BaseXmlFeed):

@@ -85,7 +85,9 @@ def main(*, output_file: IO, run_connection_tests: bool, use_sns_logging: bool) 
         pipe.run_connection_test()
 
     if not run_connection_tests:
-        logger.info("Carbon run has started.")
+        logger.info(
+            "Carbon run for the '%s' feed has started.", config_values["FEED_TYPE"]
+        )
         if use_sns_logging:
             sns_log(config_values=config_values, status="start")
         try:

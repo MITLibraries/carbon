@@ -37,6 +37,10 @@ The test suite uses SQLite, so you can develop and test without connecting to th
       **Note**: As of this writing, Apple M1 Macs cannot run Oracle Instant Client.
    * If you are on a machine that can run Oracle Instant Client, follow the steps outlined in [Without Docker](#without-docker).
 
+The data retrieved by the Carbon application contains personally identifiable information (PII), so downloading the files is not recommended. However, if examining the files created by Carbon is **absolutely necessary** for testing purposes, this can be done on your local machine via a Docker container. For more information, please refer to the Confluence document: [How to download files from an application that connects to the Data Warehouse](https://mitlibraries.atlassian.net/wiki/spaces/~712020c6fcb37f39c94e54a6bfd09607f29eb4/pages/3469443097/Running+applications+in+a+local+Docker+Container).
+
+**Note:** Any downloaded files or `.env` files must be **immediately deleted** after testing is complete.
+
 #### With Docker
 
 1. Run `make dependencies` to download the Oracle Instant Client from S3.
@@ -46,6 +50,7 @@ The test suite uses SQLite, so you can develop and test without connecting to th
 3. Run `make publish-dev` to push the Docker container image to ECR for the `Dev1` environment. 
 
 4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-with-docker'.
+
 
 #### Without Docker
 
