@@ -1,73 +1,96 @@
 import json
 import logging
 import os
+from collections.abc import Iterable
 
 import sentry_sdk
 
-ENV_VARS = [
-    "FEED_TYPE",
-    "SNS_TOPIC",
-    "SYMPLECTIC_FTP_PATH",
-    "WORKSPACE",
-    "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
-    "SYMPLECTIC_FTP_JSON",
-]
+root_logger = logging.getLogger()
 
 
-def configure_logger(logger: logging.Logger, log_level_string: str) -> str:
-    if log_level_string.upper() not in logging.getLevelNamesMapping():
-        invalid_logging_level_message = (
-            f"'{log_level_string}' is not a valid Python logging level"
-        )
-        raise ValueError(invalid_logging_level_message)
-    log_level = logging.getLevelName(log_level_string.upper())
-    if log_level < 20:  # noqa: PLR2004
-        logging.basicConfig(
-            format="%(asctime)s %(levelname)s %(name)s.%(funcName)s() line %(lineno)d: "
-            "%(message)s"
-        )
-        logger.setLevel(log_level)
-        for handler in logging.root.handlers:
-            handler.addFilter(logging.Filter("carbon"))
-    else:
-        logging.basicConfig(
-            format="%(asctime)s %(levelname)s %(name)s.%(funcName)s(): %(message)s"
-        )
-        logger.setLevel(log_level)
-    return (
-        f"Logger '{logger.name}' configured with level="
-        f"{logging.getLevelName(logger.getEffectiveLevel())}"
+class Config:
+    REQUIRED_ENVIRONMENT_VARIABLES: Iterable[str] = (
+        "FEED_TYPE",
+        "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
+        "SYMPLECTIC_FTP_JSON",
+        "SYMPLECTIC_FTP_PATH",
+        "SNS_TOPIC_ARN",
+        "WORKSPACE",
     )
+    FEED_TYPE: str
+    CONNECTION_STRING: str
+    SYMPLECTIC_FTP_USER: str
+    SYMPLECTIC_FTP_PASS: str
+    SYMPLECTIC_FTP_HOST: str
+    SYMPLECTIC_FTP_PORT: str
+    SYMPLECTIC_FTP_PATH: str
+    SNS_TOPIC_ARN: str
+    WORKSPACE: str
 
+    def __init__(
+        self,
+        log_level: str = "INFO",
+    ) -> None:
+        self.log_level = log_level
+        self.configure_logger()
+        self.load_environment_variables()
+        self.configure_sentry()
 
-def configure_sentry() -> str:
-    """Establish Carbon project on Sentry.
+    def configure_logger(self) -> None:
+        """Configure logger."""
+        if self.log_level.upper() not in logging.getLevelNamesMapping():
+            invalid_logging_level_message = (
+                f"'{self.log_level}' is not a valid Python logging level"
+            )
+            raise ValueError(invalid_logging_level_message)
+        log_level_code = logging.getLevelName(self.log_level.upper())
 
-    Returns:
-        str: Status on whether Sentry was successfully configured.
-    """
-    env = os.getenv("WORKSPACE")
-    sentry_dsn = os.getenv("SENTRY_DSN")
-    if sentry_dsn and sentry_dsn.lower() != "none":
-        sentry_sdk.init(sentry_dsn, environment=env)
-        return f"Sentry DSN found, exceptions will be sent to Sentry with env={env}"
-    return "No Sentry DSN found, exceptions will not be sent to Sentry"
-
-
-def load_config_values() -> dict:
-    """Load required ENV variables into a 'config_values' dictionary.
-
-    Returns:
-        dict: Required ENV variables.
-    """
-    config_values = {}
-    for config_variable in ENV_VARS:
-        if config_variable in [
-            "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
-            "SYMPLECTIC_FTP_JSON",
-        ]:
-            config_values.update(json.loads(os.environ[config_variable]))
+        if log_level_code < 20:  # noqa: PLR2004
+            logging.basicConfig(
+                format="%(asctime)s %(levelname)s %(name)s.%(funcName)s() "
+                "line %(lineno)d: %(message)s"
+            )
         else:
-            config_values[config_variable] = os.environ[config_variable]
+            logging.basicConfig(
+                format="%(asctime)s %(levelname)s %(name)s.%(funcName)s(): %(message)s"
+            )
 
-    return config_values
+        root_logger.setLevel(log_level_code)
+        root_logger.info(
+            "Logger '%s' configured with level=%s",
+            root_logger.name,
+            logging.getLevelName(root_logger.getEffectiveLevel()),
+        )
+
+    def configure_sentry(self) -> None:
+        """Establish Carbon project on Sentry."""
+        sentry_dsn = os.getenv("SENTRY_DSN", "None")
+        if sentry_dsn and sentry_dsn.lower() != "none":
+            sentry_sdk.init(sentry_dsn, environment=self.WORKSPACE)
+            root_logger.info(
+                "Sentry DSN found, exceptions will be sent to Sentry with env=%s",
+                self.WORKSPACE,
+            )
+        else:
+            root_logger.info("No Sentry DSN found, exceptions will not be sent to Sentry")
+
+    def load_environment_variables(self) -> None:
+        """Retrieve required environment variables and populate instance attributes."""
+        for config_variable in self.REQUIRED_ENVIRONMENT_VARIABLES:
+            try:
+                if config_variable in [
+                    "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
+                    "SYMPLECTIC_FTP_JSON",
+                ]:
+                    for nested_config_variable, nested_config_value in json.loads(
+                        os.environ[config_variable]
+                    ).items():
+                        setattr(self, nested_config_variable, nested_config_value)
+                else:
+                    setattr(self, config_variable, os.environ[config_variable])
+            except KeyError:
+                root_logger.exception(
+                    "Config error: env variable '%s' is required, please set it.",
+                    config_variable,
+                )
+                raise

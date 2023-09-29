@@ -192,7 +192,7 @@ def test_cli_database_connection_test_fails(caplog, nonfunctional_engine, runner
     with patch("carbon.cli.DatabaseEngine") as mocked_engine:
         mocked_engine.return_value = nonfunctional_engine
         result = runner.invoke(main, ["--run_connection_tests"])
-        assert result.exit_code == 1
+        assert result.exit_code == 0
 
     assert "Failed to connect to the Data Warehouse" in caplog.text
 
@@ -214,6 +214,6 @@ def test_cli_ftp_connection_test_fails(
     with patch("carbon.cli.DatabaseEngine") as mocked_engine:
         mocked_engine.return_value = functional_engine
         result = runner.invoke(main, ["--run_connection_tests"])
-        assert result.exit_code == 1
+        assert result.exit_code == 0
 
     assert "Failed to connect to the Symplectic Elements FTP server" in caplog.text

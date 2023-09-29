@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from ftplib import FTP, FTP_TLS  # nosec
+from ftplib import FTP, FTP_TLS, error_perm  # nosec
 from typing import IO, TYPE_CHECKING
 
 from carbon.feed import ArticlesXmlFeed, PeopleXmlFeed
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
     from socket import socket
 
+    from carbon.config import Config
     from carbon.database import DatabaseEngine
 
 logger = logging.getLogger(__name__)
@@ -56,6 +57,8 @@ class FileWriter:
     Attributes:
         output_file: A file-like object (stream) into which normalized XML
             strings are written.
+        engine: A configured carbon.database.DatabaseEngine that can connect to the
+            Data Warehouse.
     """
 
     def __init__(self, engine: DatabaseEngine, output_file: IO):
@@ -85,10 +88,12 @@ class ConcurrentFtpFileWriter(FileWriter):
     This class is intended to provide a buffered read/write connecter.
 
     Attributes:
-        output_file: A file-like object (stream) into which normalized XML
-            strings are written.
+        input_file: A file-like object (stream) into which normalized XML
+            strings are written. This stream is passed into FileWriter.output_file
+            and provides the contents that are ultimately written to an XML file
+            on the Symplectic Elements FTP server.
         ftp_output_file: A file-like object (stream) that reads data from
-            PipeWriter().output_file and writes its contents to an XML file
+            the ConcurrentFtpFileWriter.input_file and writes its contents to an XML file
             on the Symplectic Elements FTP server.
     """
 
@@ -161,16 +166,25 @@ class FtpFile:
 
 
 class DatabaseToFilePipe:
-    """A pipe feeding data from the Data Warehouse to a local file."""
+    """A pipe feeding data from the Data Warehouse to a local file.
 
-    def __init__(self, config: dict, engine: DatabaseEngine, output_file: IO):
+    Attributes:
+        config: A carbon.config.Config instance with the required environment variables
+          for running the feed.
+        engine: A configured carbon.database.DatabaseEngine that can connect to the
+            Data Warehouse.
+        output_file: The full file path to the generated XML file into which normalized
+            XML strings are written (e.g. "output/people.xml").
+    """
+
+    def __init__(self, config: Config, engine: DatabaseEngine, output_file: IO):
         self.config = config
         self.engine = engine
         self.output_file = output_file
 
     def run(self) -> None:
         FileWriter(engine=self.engine, output_file=self.output_file).write(
-            feed_type=self.config["FEED_TYPE"]
+            feed_type=self.config.FEED_TYPE
         )
 
 
@@ -189,10 +203,13 @@ class DatabaseToFtpPipe:
            'write' file stream into an XML file on the Elements FTP server.
 
     Attributes:
-        config: A dictionary of required environment variables for running the feed.
+        config: A carbon.config.Config instance with the required environment variables
+          for running the feed.
+        engine: A configured carbon.database.DatabaseEngine that can connect to the
+            Data Warehouse.
     """
 
-    def __init__(self, config: dict, engine: DatabaseEngine):
+    def __init__(self, config: Config, engine: DatabaseEngine):
         self.config = config
         self.engine = engine
 
@@ -204,15 +221,15 @@ class DatabaseToFtpPipe:
         ) as buffered_writer:
             ftp_file = FtpFile(
                 content_feed=buffered_reader,
-                user=self.config["SYMPLECTIC_FTP_USER"],
-                password=self.config["SYMPLECTIC_FTP_PASS"],
-                path=self.config["SYMPLECTIC_FTP_PATH"],
-                host=self.config["SYMPLECTIC_FTP_HOST"],
-                port=int(self.config["SYMPLECTIC_FTP_PORT"]),
+                user=self.config.SYMPLECTIC_FTP_USER,
+                password=self.config.SYMPLECTIC_FTP_PASS,
+                path=self.config.SYMPLECTIC_FTP_PATH,
+                host=self.config.SYMPLECTIC_FTP_HOST,
+                port=int(self.config.SYMPLECTIC_FTP_PORT),
             )
             ConcurrentFtpFileWriter(
                 engine=self.engine, input_file=buffered_writer, ftp_output_file=ftp_file
-            ).write(feed_type=self.config["FEED_TYPE"])
+            ).write(feed_type=self.config.FEED_TYPE)
 
     def run_connection_test(self) -> None:
         """Test connection to the Symplectic Elements FTP server.
@@ -224,13 +241,19 @@ class DatabaseToFtpPipe:
         try:
             ftps = CarbonFtpsTls(timeout=30)
             ftps.connect(
-                host=self.config["SYMPLECTIC_FTP_HOST"],
-                port=int(self.config["SYMPLECTIC_FTP_PORT"]),
+                host=self.config.SYMPLECTIC_FTP_HOST,
+                port=int(self.config.SYMPLECTIC_FTP_PORT),
             )
             ftps.login(
-                user=self.config["SYMPLECTIC_FTP_USER"],
-                passwd=self.config["SYMPLECTIC_FTP_PASS"],
+                user=self.config.SYMPLECTIC_FTP_USER,
+                passwd=self.config.SYMPLECTIC_FTP_PASS,
             )
+        except error_perm as error:
+            error_message = (
+                f"Failed to connect to the Symplectic Elements FTP server: {error}"
+            )
+            logger.error(error_message)  # noqa: TRY400
+            raise
         except Exception as error:
             error_message = (
                 f"Failed to connect to the Symplectic Elements FTP server: {error}"
@@ -240,3 +263,36 @@ class DatabaseToFtpPipe:
         else:
             logger.info("Successfully connected to the Symplectic Elements FTP server")
             ftps.quit()
+
+
+def run_all_connection_tests(
+    engine: DatabaseEngine, pipe: DatabaseToFilePipe | DatabaseToFtpPipe
+) -> None:
+    """Run connection tests for the Data Warehouse and Elements FTP server.
+
+    Args:
+        engine (DatabaseEngine): A configured carbon.database.DatabaseEngine that can
+            connect to the Data Warehouse.
+        pipe (DatabaseToFilePipe | DatabaseToFtpPipe): The pipe used to run the
+            data feed. If the pipe is an instance of carbon.app.DatabaseToFtpPipe,
+            a connection test for the Elements FTP server is run.
+    """
+    # test connection to the Data Warehouse
+    try:
+        engine.run_connection_test()
+    except Exception:  # noqa: BLE001
+        logger.error(  # noqa: TRY400
+            "The Data Warehouse connection test failed. The application is exiting."
+        )
+        return
+
+    # test connection to the Symplectic Elements FTP server
+    if isinstance(pipe, DatabaseToFtpPipe):
+        try:
+            pipe.run_connection_test()
+        except Exception:  # noqa: BLE001
+            logger.error(  # noqa: TRY400
+                "Symplectic Elements FTP server connection test failed. "
+                "The application is exiting."
+            )
+            return
