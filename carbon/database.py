@@ -14,6 +14,7 @@ from sqlalchemy import (
     UnicodeText,
     create_engine,
 )
+from sqlalchemy.exc import DatabaseError
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,10 @@ class DatabaseEngine:
         logger.info("Testing connection to the Data Warehouse")
         try:
             connection = self._engine.connect()  # type: ignore[union-attr]
+        except DatabaseError as error:
+            error_message = f"Failed to connect to the Data Warehouse: {error}"
+            logger.error(error_message)  # noqa: TRY400
+            raise
         except Exception as error:
             error_message = f"Failed to connect to the Data Warehouse: {error}"
             logger.exception(error_message)

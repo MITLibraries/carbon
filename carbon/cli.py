@@ -4,11 +4,12 @@ from typing import IO
 
 import click
 
-from carbon.app import DatabaseToFilePipe, DatabaseToFtpPipe
-from carbon.config import configure_logger, configure_sentry, load_config_values
+from carbon.app import DatabaseToFilePipe, DatabaseToFtpPipe, run_all_connection_tests
+from carbon.config import Config
 from carbon.database import DatabaseEngine
 from carbon.helpers import sns_log
 
+root_logger = logging.getLogger()
 logger = logging.getLogger(__name__)
 
 
@@ -54,49 +55,41 @@ def main(*, output_file: IO, run_connection_tests: bool, use_sns_logging: bool) 
     If the -o/--out argument is used, the output will be written to the specified
     file instead. This latter option is recommended for testing purposes.
     """
-    config_values = load_config_values()
+    config = Config(log_level=os.getenv("LOG_LEVEL", "INFO"))
+
     # [TEMP]: The connection string must use 'oracle+oracledb' to differentiate
     # between the cx_Oracle and python-oracledb drivers
-    config_values["CONNECTION_STRING"] = config_values["CONNECTION_STRING"].replace(
+    config.CONNECTION_STRING = config.CONNECTION_STRING.replace(
         "oracle", "oracle+oracledb"
     )
-    root_logger = logging.getLogger()
-    logger.info(configure_logger(root_logger, os.getenv("LOG_LEVEL", "INFO")))
-    configure_sentry()
+
     logger.info(
         "Carbon config settings loaded for environment: %s",
-        config_values["WORKSPACE"],
+        config.WORKSPACE,
     )
 
     engine = DatabaseEngine()
-    engine.configure(config_values["CONNECTION_STRING"], thick_mode=True)
-
-    # test connection to the Data Warehouse
-    engine.run_connection_test()
+    engine.configure(config.CONNECTION_STRING, thick_mode=True)
 
     pipe: DatabaseToFtpPipe | DatabaseToFilePipe
     if output_file:
-        pipe = DatabaseToFilePipe(
-            config=config_values, engine=engine, output_file=output_file
-        )
+        pipe = DatabaseToFilePipe(config=config, engine=engine, output_file=output_file)
     else:
-        pipe = DatabaseToFtpPipe(config=config_values, engine=engine)
-        # test connection to the Symplectic Elements FTP server
-        pipe.run_connection_test()
+        pipe = DatabaseToFtpPipe(config=config, engine=engine)
+
+    run_all_connection_tests(engine=engine, pipe=pipe)
 
     if not run_connection_tests:
-        logger.info(
-            "Carbon run for the '%s' feed has started.", config_values["FEED_TYPE"]
-        )
+        logger.info("Carbon run for the '%s' feed has started.", config.FEED_TYPE)
         if use_sns_logging:
-            sns_log(config_values=config_values, status="start")
+            sns_log(config=config, status="start")
         try:
             pipe.run()
         except Exception as error:  # noqa: BLE001
-            logger.info("Carbon run has failed.")
+            logger.error("Carbon run has failed.")  # noqa: TRY400
             if use_sns_logging:
-                sns_log(config_values=config_values, status="fail", error=error)
+                sns_log(config=config, status="fail", error=error)
         else:
             logger.info("Carbon run has successfully completed.")
             if use_sns_logging:
-                sns_log(config_values=config_values, status="success")
+                sns_log(config=config, status="success")

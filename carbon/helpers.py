@@ -1,9 +1,10 @@
 import logging
 import re
 from datetime import UTC, datetime
-from typing import Any
 
 import boto3
+
+from carbon.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -87,9 +88,7 @@ def get_initials(*args: str) -> str:
     )
 
 
-def sns_log(
-    config_values: dict[str, Any], status: str, error: Exception | None = None
-) -> dict | None:
+def sns_log(config: Config, status: str, error: Exception | None = None) -> dict | None:
     """Send a message to an Amazon SNS topic about the status of the Carbon run.
 
     When Carbon is run in the 'stage' environment, subscribers to the 'carbon-ecs-stage'
@@ -101,7 +100,7 @@ def sns_log(
             successfully completed or encountered an error.
 
     Args:
-        config_values (dict[str, Any]): A dictionary of required environment variables
+        config (Config): A Config instance with the required environment variables
           for running the feed.
         status (str): The status of the Carbon run that is used to determine the message
           published by SNS. The following values are accepted: 'start', 'success',
@@ -110,9 +109,9 @@ def sns_log(
           Defaults to None.
     """
     sns_client = boto3.client("sns")
-    sns_id = config_values.get("SNS_TOPIC")
-    stage = config_values.get("SYMPLECTIC_FTP_PATH", "").lstrip("/").split("/")[0]
-    feed = config_values.get("FEED_TYPE", "")
+    sns_id = config.SNS_TOPIC_ARN
+    stage = config.SYMPLECTIC_FTP_PATH.lstrip("/").split("/")[0]
+    feed = config.FEED_TYPE
 
     if status == "start":
         return sns_client.publish(

@@ -13,26 +13,39 @@ from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.handlers import TLS_FTPHandler
 from pyftpdlib.servers import FTPServer
 
+from carbon.config import Config
 from carbon.database import DatabaseEngine, aa_articles, dlcs, metadata, orcids, persons
 
 
 # set environment variables required for testing
 @pytest.fixture(autouse=True)
-def _test_env(ftp_server):
+def _test_env(ftp_server, monkeypatch):
     ftp_socket, _ = ftp_server
-    os.environ["FEED_TYPE"] = "test_feed_type"
-    os.environ["LOG_LEVEL"] = "INFO"
-    os.environ["SENTRY_DSN"] = "None"
-    os.environ["SNS_TOPIC"] = "arn:aws:sns:us-east-1:123456789012:test_sns_topic"
-    os.environ["WORKSPACE"] = "test"
-    os.environ["DATAWAREHOUSE_CLOUDCONNECTOR_JSON"] = '{"CONNECTION_STRING": "sqlite://"}'
-    os.environ["SYMPLECTIC_FTP_PATH"] = "/people.xml"
-    os.environ["SYMPLECTIC_FTP_JSON"] = (
-        '{"SYMPLECTIC_FTP_HOST": "localhost", '
-        f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
-        '"SYMPLECTIC_FTP_USER": "user", '
-        '"SYMPLECTIC_FTP_PASS": "pass"}'
+    monkeypatch.setenv("FEED_TYPE", "test_feed_type")
+    monkeypatch.setenv("LOG_LEVEL", "INFO")
+    monkeypatch.setenv("SENTRY_DSN", "None")
+    monkeypatch.setenv(
+        "SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:123456789012:test_sns_topic"
     )
+    monkeypatch.setenv("WORKSPACE", "test")
+    monkeypatch.setenv(
+        "DATAWAREHOUSE_CLOUDCONNECTOR_JSON", '{"CONNECTION_STRING": "sqlite://"}'
+    )
+    monkeypatch.setenv("SYMPLECTIC_FTP_PATH", "/people.xml")
+    monkeypatch.setenv(
+        "SYMPLECTIC_FTP_JSON",
+        (
+            '{"SYMPLECTIC_FTP_HOST": "localhost", '
+            f'"SYMPLECTIC_FTP_PORT": "{ftp_socket[1]}",'
+            '"SYMPLECTIC_FTP_USER": "user", '
+            '"SYMPLECTIC_FTP_PASS": "pass"}'
+        ),
+    )
+
+
+@pytest.fixture(autouse=True)
+def config(_test_env):
+    return Config()
 
 
 # populate sqlite test database with records
