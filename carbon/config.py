@@ -32,20 +32,20 @@ class Config:
         log_level: str = "INFO",
     ) -> None:
         self.log_level = log_level
+
         self.configure_logger()
         self.load_environment_variables()
         self.configure_sentry()
 
     def configure_logger(self) -> None:
         """Configure logger."""
-        if self.log_level.upper() not in logging.getLevelNamesMapping():
-            invalid_logging_level_message = (
-                f"'{self.log_level}' is not a valid Python logging level"
-            )
-            raise ValueError(invalid_logging_level_message)
-        log_level_code = logging.getLevelName(self.log_level.upper())
+        try:
+            log_level_code = getattr(logging, self.log_level.strip().upper())
+        except AttributeError as error:
+            msg = f"'{self.log_level}' is not a valid Python logging level"
+            raise ValueError(msg) from error
 
-        if log_level_code < 20:  # noqa: PLR2004
+        if log_level_code < logging.INFO:
             logging.basicConfig(
                 format="%(asctime)s %(levelname)s %(name)s.%(funcName)s() "
                 "line %(lineno)d: %(message)s"
