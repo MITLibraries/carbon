@@ -25,9 +25,12 @@ flowchart TB
    
    subgraph in-memory[Application In-memory]
       direction TB
-      rec-generator([Record generator])
-      buffered-writer([Buffered Writer])
-      buffered-reader([Buffered Reader])
+      rec-generator([Query Results Generator])
+      subgraph piped[Piped Read-Write Buffer]
+         buffered-writer([Buffered Writer])
+         buffered-reader([Buffered Reader])
+      end
+      ftps-client((FTPS Client))
    end
 
    subgraph elements-ftp[Elements FTP server]
@@ -36,11 +39,10 @@ flowchart TB
    end
 
    mit-dwrhs -->|Fetch query results | rec-generator
-   rec-generator-->|Yielding records one at a time, <br> transform record into normalized XML strings <br> and write to a file| buffered-writer
-   buffered-writer -->|Stream contents from file to another read end of pipe| buffered-reader
-   buffered-reader -->|Stream contents from read end of pipe to an XML file on FTP server|xml-file
-
-
+   rec-generator-->|Yielding records one at a time, <br> transform record into normalized XML strings <br> and pass to write buffer| piped
+   buffered-writer -.->|Pipe contents to read buffer| buffered-reader
+   buffered-reader -->|Read buffer acts as data feed for an XML file on FTP server <br>| ftps-client
+   ftps-client -->|Stream contents from read buffer to an XML file on FTP server|xml-file
 ```
 
 
