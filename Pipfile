@@ -20,7 +20,6 @@ pyopenssl = "*"
 ruff = "*"
 types-setuptools = "*"
 
-
 [packages]
 boto3 = "*"
 click = "*"
@@ -31,7 +30,7 @@ SQLAlchemy = "*"
 sentry-sdk = "*"
 
 [requires]
-python_version = "3.11"
+python_version = "3.12"
 
 [scripts]
 carbon = "python -c \"from carbon.cli import main; main()\""
