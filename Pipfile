@@ -19,6 +19,7 @@ pyftpdlib = "*"
 pyopenssl = "*"
 ruff = "*"
 types-setuptools = "*"
+safety = "*"
 
 [packages]
 boto3 = "*"
@@ -26,7 +27,6 @@ click = "*"
 lxml = "*"
 oracledb = "*"
 SQLAlchemy = "*"
-
 sentry-sdk = "*"
 
 [requires]

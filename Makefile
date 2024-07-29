@@ -14,6 +14,10 @@ S3_BUCKET:=shared-files-$(shell aws sts get-caller-identity --query "Account" --
 ORACLE_ZIP:=instantclient-basiclite-linux.x64-21.9.0.0.0dbru.zip
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
+help: ## Print this message
+	@awk 'BEGIN { FS = ":.*##"; print "Usage:  make <target>\n\nTargets:" } \
+/^[-_[:alpha:]]+:.?*##/ { printf "  %-15s%s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+
 ## ---- Dependency commands ---- ##
 
 install: # install python dependencies

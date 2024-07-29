@@ -1,4 +1,5 @@
 """Carbon: a people loader."""
+
 import subprocess
 
 from setuptools import find_packages, setup
@@ -7,8 +8,8 @@ with open("LICENSE") as f:
     mit_license = f.read()
 
 try:
-    output = subprocess.run(
-        ["git", "describe", "--always"],  # noqa: S603, S607
+    output = subprocess.run(  # noqa: S603
+        ["git", "describe", "--always"],  # noqa: S607
         stdout=subprocess.PIPE,
         encoding="utf-8",
         check=False,

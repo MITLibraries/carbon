@@ -55,7 +55,7 @@ class BaseXmlFeed(ABC):
                 yield dict(zip(result.keys(), row, strict=True))
 
     @abstractmethod
-    def _add_element(self, record: dict[str, Any]) -> None | ET._Element:  # noqa: SLF001
+    def _add_element(self, record: dict[str, Any]) -> None | ET._Element:
         """Create an XML element for a provided record.
 
         Must be overridden by subclasses.
@@ -70,11 +70,11 @@ class BaseXmlFeed(ABC):
 
     def _add_subelement(
         self,
-        parent: ET._Element,  # noqa: SLF001
+        parent: ET._Element,
         element_name: str,
         element_text: str | None = None,
         **kwargs: str,
-    ) -> ET._Element:  # noqa: SLF001):
+    ) -> ET._Element:
         """Add an XML subelement to an existing element.
 
         Args:
@@ -115,7 +115,7 @@ class ArticlesXmlFeed(BaseXmlFeed):
         .where(aa_articles.c.MIT_ID.is_not(None))
     )
 
-    def _add_element(self, record: dict[str, Any]) -> ET._Element:  # noqa: SLF001
+    def _add_element(self, record: dict[str, Any]) -> ET._Element:
         """Create an XML element representing an article.
 
         The function will create a single 'ARTICLE' element that contains subelements
@@ -277,7 +277,7 @@ class PeopleXmlFeed(BaseXmlFeed):
         .where(func.upper(persons.c.JOB_TITLE).in_(titles))
     )
 
-    def _add_element(self, record: dict[str, Any]) -> ET._Element:  # noqa: SLF001
+    def _add_element(self, record: dict[str, Any]) -> ET._Element:
         """Create an XML element representing a person.
 
         The function will create a single 'record' element that contains subelements
