@@ -136,29 +136,21 @@ The password for the Data Warehouse is updated each year. To verify that the upd
    * Verify that the following log is included:
       > Successfully connected to the Data Warehouse: \<VERSION NUMBER\>
 
-## Required ENV
+## Environment Variables
 
-```
-WORKSPACE= "dev"
-
-# type of feed, either "people" or "articles"
-FEED_TYPE="people"
-
-# JSON formatted string of key/value pairs for the MIT Data Warehouse connection
-DATAWAREHOUSE_CLOUDCONNECTOR_JSON='{"USER": "<VALID_DATAWAREHOUSE_USERNAME>", "PASSWORD": "<VALID_DATAWAREHOUSE_PASSWORD>", "HOST": "<VALID_DATAWAREHOUSE_HOST>", "PORT": "<VALID_DATAWAREHOUSE_PORT>", "PATH": "<VALID_DATAWAREHOUSE_ORACLE_SID>", "CONNECTION_STRING": "<VALID_DATAWAREHOUSE_CONNECTION_STRING>"}'
-
-# A JSON formatted string of key/value pairs for connecting to the Symplectic Elements FTP server
-SYMPLECTIC_FTP_JSON='{"SYMPLECTIC_FTP_HOST": "<VALID_ELEMENTS_FTP_HOST>", "SYMPLECTIC_FTP_PORT": "<VALID_ELEMENTS_FTP_PORT>", "SYMPLECTIC_FTP_USER": "<VALID_ELEMENTS_FTP_USER>", "SYMPLECTIC_FTP_PASS": "<VALID_ELEMENTS_FTP_PASSWORD>"}'
-
-# full XML file path that is uploaded to the Symplectic Elements FTP server
-SYMPLECTIC_FTP_PATH="<FTP_FILE_DIRECTORY>/people.xml"
-
-# SNS topic ARN used for sending email notifications.
-SNS_TOPIC="<VALID_SNS_TOPIC_ARN>"
+### Required 
+```shell
+WORKSPACE="dev" # Set to `dev` for local development, this will be set to `stage` and `prod` in those environments by Terraform.
+FEED_TYPE="people" # Type of feed, either "people" or "articles".
+DATAWAREHOUSE_CLOUDCONNECTOR_JSON='{"USER": "<VALID_DATAWAREHOUSE_USERNAME>", "PASSWORD": "<VALID_DATAWAREHOUSE_PASSWORD>", "HOST": "<VALID_DATAWAREHOUSE_HOST>", "PORT": "<VALID_DATAWAREHOUSE_PORT>", "PATH": "<VALID_DATAWAREHOUSE_ORACLE_SID>", "CONNECTION_STRING": "<VALID_DATAWAREHOUSE_CONNECTION_STRING>"}' # JSON formatted string of key/value pairs for the MIT Data Warehouse connection.
+SYMPLECTIC_FTP_JSON='{"SYMPLECTIC_FTP_HOST": "<VALID_ELEMENTS_FTP_HOST>", "SYMPLECTIC_FTP_PORT": "<VALID_ELEMENTS_FTP_PORT>", "SYMPLECTIC_FTP_USER": "<VALID_ELEMENTS_FTP_USER>", "SYMPLECTIC_FTP_PASS": "<VALID_ELEMENTS_FTP_PASSWORD>"}' # A JSON formatted string of key/value pairs for connecting to the Symplectic Elements FTP server.
+SYMPLECTIC_FTP_PATH="<FTP_FILE_DIRECTORY>/<FEED_TYPE>.xml" # Full XML file path that is uploaded to the Symplectic Elements FTP server.
+SNS_TOPIC="<VALID_SNS_TOPIC_ARN>" # SNS topic ARN used for sending email notifications.
 ```
 
-## Optional ENV
-
-* `LOG_LEVEL` = The log level for the `carbon` application. Defaults to `INFO` if not set.
-* `ORACLE_LIB_DIR` = The directory containing the Oracle Instant Client library.
-* `SENTRY_DSN` = If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
+### Optional
+```shell
+LOG_LEVEL="INFO" # The log level for the 'carbon' application. Defaults to 'INFO' if not set.
+ORACLE_LIB_DIR="<PATH>" # The directory containing the Oracle Instant Client library.
+SENTRY_DSN="<SENTRY_DSN>" # If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
+```
