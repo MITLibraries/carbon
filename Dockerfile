@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set path for Oracle client libraries
 ENV LD_LIBRARY_PATH /opt/lib/

@@ -38,7 +38,9 @@ class CarbonFtpsTls(FTP_TLS):
         See ftplib.FTP_TLS for more details.
     """
 
-    def ntransfercmd(self, cmd: str, rest: str | int | None = None) -> tuple[socket, int]:
+    def ntransfercmd(
+        self, cmd: str, rest: str | int | None = None
+    ) -> tuple[socket, int | None]:
         """Initiate a transfer over the data connection."""
         conn, size = FTP.ntransfercmd(self, cmd, rest)
         if self._prot_p:  # type: ignore[attr-defined]
