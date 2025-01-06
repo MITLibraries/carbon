@@ -2,8 +2,8 @@
 
 Carbon is a tool for loading data into [Symplectic Elements](https://support.symplectic.co.uk/support/solutions/articles/6000049890-symplectic-elements-quick-start-guide). Carbon retrieves records from the Data Warehouse, normalizes and writes the data to XML files, and uploads the XML files to the Elements FTP server. It is used to create and run the following feed types: 
 
-   * `people`: Provides data for the HR Feed.
-   * `articles`: Provides data for the Publications Feed.
+* `people`: Provides data for the HR Feed.
+* `articles`: Provides data for the Publications Feed.
 
 Please refer to the [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon) for the deployment configuration.
 
@@ -44,7 +44,6 @@ flowchart TB
    buffered-reader -->|Read buffer acts as data feed for an XML file on FTP server <br>| ftps-client
    ftps-client -->|Stream contents from read buffer to an XML file on FTP server|xml-file
 ```
-
 
 ## Development
 
@@ -89,7 +88,6 @@ The data retrieved by the Carbon application contains personally identifiable in
 3. Run `make publish-dev` to push the Docker container image to ECR for the `Dev1` environment. 
 
 4. Run any `make` commands for testing the application. In the Makefile, the names of relevant make commands will contain the suffix '-with-docker'.
-
 
 #### Without Docker
 
@@ -138,7 +136,8 @@ The password for the Data Warehouse is updated each year. To verify that the upd
 
 ## Environment Variables
 
-### Required 
+### Required
+
 ```shell
 WORKSPACE="dev" # Set to `dev` for local development, this will be set to `stage` and `prod` in those environments by Terraform.
 FEED_TYPE="people" # Type of feed, either "people" or "articles".
@@ -149,8 +148,30 @@ SNS_TOPIC="<VALID_SNS_TOPIC_ARN>" # SNS topic ARN used for sending email notific
 ```
 
 ### Optional
+
 ```shell
 LOG_LEVEL="INFO" # The log level for the 'carbon' application. Defaults to 'INFO' if not set.
 ORACLE_LIB_DIR="<PATH>" # The directory containing the Oracle Instant Client library.
 SENTRY_DSN="<SENTRY_DSN>" # If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
 ```
+
+## Related Assets
+
+* Infrastructure: [mitlib-tf-workloads-carbon](https://github.com/mitlibraries/mitlib-tf-workloads-carbon)
+* Depends-on Application: [CloudConnector](https://github.com/MITLibraries/cloudconnector)
+
+```mermaid
+mindmap
+    root((carbon))
+        (Infrastructure)
+            ["`mitlib-tf
+            -workloads-carbon`"]
+        (Depends-on)
+            [CloudConnector]
+```
+
+## Maintainers
+
+* Team: [DataEng](https://github.com/orgs/MITLibraries/teams/dataeng)
+* Last Maintenance: 2024-07
+* External Documentation: [Secure InfraEng Wiki](https://mitlibraries.atlassian.net/wiki/spaces/IN/pages/3455811597/Carbon+A+tool+for+loading+data+into+Symplectic+Elements)
