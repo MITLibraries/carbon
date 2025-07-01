@@ -174,7 +174,7 @@ def test_cli_sns_log_publishes_status_message_fail(
         mocked_sns_client.return_value = stubbed_sns_client_start_fail
         result = runner.invoke(main)
         assert result.exit_code == 0
-        assert "Carbon run has failed." in caplog.text
+        assert "Carbon run has failed" in caplog.text
         mocked_sns_client.assert_called()
 
 

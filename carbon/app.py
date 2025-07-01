@@ -76,6 +76,8 @@ class FileWriter:
         elif feed_type == "articles":
             xml_feed = ArticlesXmlFeed(engine=self.engine, output_file=self.output_file)
             xml_feed.run()
+        else:
+            raise ValueError(f"Feed type not recognized: '{feed_type}'")
 
         logger.info(
             "The '%s' feed has processed %s records.",
