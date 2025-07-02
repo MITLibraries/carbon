@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import closing
@@ -5,15 +6,18 @@ from datetime import datetime
 from typing import IO, Any, ClassVar
 
 from lxml import etree as ET
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.sql.selectable import Select
 
+from carbon.config import Config
 from carbon.database import DatabaseEngine, aa_articles, dlcs, orcids, persons
 from carbon.helpers import (
     get_group_name,
     get_hire_date_string,
     get_initials,
 )
+
+config = Config()
 
 
 class BaseXmlFeed(ABC):
@@ -107,13 +111,33 @@ class ArticlesXmlFeed(BaseXmlFeed):
     """Articles XML feed class."""
 
     root_element_name = "ARTICLES"
-    query = (
-        select(aa_articles)
-        .where(aa_articles.c.ARTICLE_ID.is_not(None))
-        .where(aa_articles.c.ARTICLE_TITLE.is_not(None))
-        .where(aa_articles.c.DOI.is_not(None))
-        .where(aa_articles.c.MIT_ID.is_not(None))
-    )
+
+    @property
+    def query(self) -> Select:  # type: ignore[override]
+        """Build data warehouse query for Articles.
+
+        If the env var "ARTICLES_PUBLISH_DAYS_PAST" is set, filter the query to rows
+        where PUBLISH_DATE is >= than this many days old.  Notethat the PUBLISH_DATE can
+        be in the future, so an article may be included multiple times in the XML output
+        until its future date has passed.
+        """
+        query_object = (
+            select(aa_articles)
+            .where(aa_articles.c.ARTICLE_ID.is_not(None))
+            .where(aa_articles.c.ARTICLE_TITLE.is_not(None))
+            .where(aa_articles.c.DOI.is_not(None))
+            .where(aa_articles.c.MIT_ID.is_not(None))
+        )
+
+        if days_past := os.environ.get("ARTICLES_PUBLISH_DAYS_PAST"):
+            query_object = query_object.where(
+                text(
+                    "TO_DATE(PUBLISH_DATE, 'MM/DD/YYYY') >= "
+                    f"SYSDATE - {int(days_past)}"
+                )
+            )
+
+        return query_object
 
     def _add_element(self, record: dict[str, Any]) -> ET._Element:
         """Create an XML element representing an article.
@@ -163,119 +187,121 @@ class PeopleXmlFeed(BaseXmlFeed):
             attribute of the root 'records' element when serialized.
     """
 
-    areas: tuple[str, ...] = (
-        "ARCHITECTURE & PLANNING AREA",
-        "ENGINEERING AREA",
-        "HUMANITIES, ARTS, & SOCIAL SCIENCES AREA",
-        "SCIENCE AREA",
-        "SLOAN SCHOOL OF MANAGEMENT AREA",
-        "VP RESEARCH",
-        "CHANCELLOR'S AREA",
-        "OFFICE OF PROVOST AREA",
-        "PROVOST AREA",
-    )
-    ps_codes: tuple[str, ...] = (
-        "CFAN",
-        "CFAT",
-        "CFEL",
-        "CSRS",
-        "CSRR",
-        "COAC",
-        "COAR",
-        "L303",
-    )
-    titles: tuple[str, ...] = (
-        "ADJUNCT ASSOCIATE PROFESSOR",
-        "ADJUNCT PROFESSOR",
-        "AFFILIATED ARTIST",
-        "ASSISTANT PROFESSOR",
-        "ASSOCIATE PROFESSOR",
-        "ASSOCIATE PROFESSOR (NOTT)",
-        "ASSOCIATE PROFESSOR (WOT)",
-        "ASSOCIATE PROFESSOR OF THE PRACTICE",
-        "INSTITUTE OFFICIAL - EMERITUS",
-        "INSTITUTE PROFESSOR (WOT)",
-        "INSTITUTE PROFESSOR EMERITUS",
-        "INSTRUCTOR",
-        "LECTURER",
-        "LECTURER II",
-        "POSTDOCTORAL ASSOCIATE",
-        "POSTDOCTORAL FELLOW",
-        "PRINCIPAL RESEARCH ASSOCIATE",
-        "PRINCIPAL RESEARCH ENGINEER",
-        "PRINCIPAL RESEARCH SCIENTIST",
-        "PROFESSOR",
-        "PROFESSOR (NOTT)",
-        "PROFESSOR (WOT)",
-        "PROFESSOR EMERITUS",
-        "PROFESSOR OF THE PRACTICE",
-        "RESEARCH ASSOCIATE",
-        "RESEARCH ENGINEER",
-        "RESEARCH FELLOW",
-        "RESEARCH SCIENTIST",
-        "RESEARCH SPECIALIST",
-        "SENIOR LECTURER",
-        "SENIOR POSTDOCTORAL ASSOCIATE",
-        "SENIOR POSTDOCTORAL FELLOW",
-        "SENIOR RESEARCH ASSOCIATE",
-        "SENIOR RESEARCH ENGINEER",
-        "SENIOR RESEARCH SCIENTIST",
-        "SENIOR RESEARCH SCIENTIST (MAP)",
-        "SPONSORED RESEARCH TECHNICAL STAFF",
-        "SPONSORED RESEARCH TECHNICAL SUPERVISOR",
-        "STAFF AFFILIATE",
-        "TECHNICAL ASSISTANT",
-        "TECHNICAL ASSOCIATE",
-        "VISITING ASSISTANT PROFESSOR",
-        "VISITING ASSOCIATE PROFESSOR",
-        "VISITING ENGINEER",
-        "VISITING LECTURER",
-        "VISITING PROFESSOR",
-        "VISITING RESEARCH ASSOCIATE",
-        "VISITING SCHOLAR",
-        "VISITING SCIENTIST",
-        "VISITING SENIOR LECTURER",
-        "PART-TIME FLEXIBLE/LL",
-    )
-
     symplectic_elements_namespace: str = "http://www.symplectic.co.uk/hrimporter"
     namespace_mapping: ClassVar[dict] = {None: symplectic_elements_namespace}
-
     root_element_name: str = str(ET.QName(symplectic_elements_namespace, tag="records"))
-    query = (
-        select(
-            persons.c.MIT_ID,
-            persons.c.KRB_NAME_UPPERCASE,
-            persons.c.FIRST_NAME,
-            persons.c.MIDDLE_NAME,
-            persons.c.LAST_NAME,
-            persons.c.EMAIL_ADDRESS,
-            persons.c.DATE_TO_FACULTY,
-            persons.c.ORIGINAL_HIRE_DATE,
-            dlcs.c.DLC_NAME,
-            persons.c.PERSONNEL_SUBAREA_CODE,
-            persons.c.APPOINTMENT_END_DATE,
-            orcids.c.ORCID,
-            dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
-            dlcs.c.HR_ORG_LEVEL5_NAME,
+
+    @property
+    def query(self) -> Select:  # type: ignore[override]
+        areas: tuple[str, ...] = (
+            "ARCHITECTURE & PLANNING AREA",
+            "ENGINEERING AREA",
+            "HUMANITIES, ARTS, & SOCIAL SCIENCES AREA",
+            "SCIENCE AREA",
+            "SLOAN SCHOOL OF MANAGEMENT AREA",
+            "VP RESEARCH",
+            "CHANCELLOR'S AREA",
+            "OFFICE OF PROVOST AREA",
+            "PROVOST AREA",
         )
-        .select_from(persons)
-        .outerjoin(orcids)
-        .join(dlcs)
-        .where(persons.c.EMAIL_ADDRESS.is_not(None))
-        .where(persons.c.LAST_NAME.is_not(None))
-        .where(persons.c.KRB_NAME_UPPERCASE.is_not(None))
-        .where(persons.c.KRB_NAME_UPPERCASE != "UNKNOWN")
-        .where(persons.c.MIT_ID.is_not(None))
-        .where(persons.c.ORIGINAL_HIRE_DATE.is_not(None))
-        .where(
-            persons.c.APPOINTMENT_END_DATE  # noqa: SIM300
-            >= datetime(2009, 1, 1)  # noqa: DTZ001
+        ps_codes: tuple[str, ...] = (
+            "CFAN",
+            "CFAT",
+            "CFEL",
+            "CSRS",
+            "CSRR",
+            "COAC",
+            "COAR",
+            "L303",
         )
-        .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(areas))
-        .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(ps_codes))
-        .where(func.upper(persons.c.JOB_TITLE).in_(titles))
-    )
+        titles: tuple[str, ...] = (
+            "ADJUNCT ASSOCIATE PROFESSOR",
+            "ADJUNCT PROFESSOR",
+            "AFFILIATED ARTIST",
+            "ASSISTANT PROFESSOR",
+            "ASSOCIATE PROFESSOR",
+            "ASSOCIATE PROFESSOR (NOTT)",
+            "ASSOCIATE PROFESSOR (WOT)",
+            "ASSOCIATE PROFESSOR OF THE PRACTICE",
+            "INSTITUTE OFFICIAL - EMERITUS",
+            "INSTITUTE PROFESSOR (WOT)",
+            "INSTITUTE PROFESSOR EMERITUS",
+            "INSTRUCTOR",
+            "LECTURER",
+            "LECTURER II",
+            "POSTDOCTORAL ASSOCIATE",
+            "POSTDOCTORAL FELLOW",
+            "PRINCIPAL RESEARCH ASSOCIATE",
+            "PRINCIPAL RESEARCH ENGINEER",
+            "PRINCIPAL RESEARCH SCIENTIST",
+            "PROFESSOR",
+            "PROFESSOR (NOTT)",
+            "PROFESSOR (WOT)",
+            "PROFESSOR EMERITUS",
+            "PROFESSOR OF THE PRACTICE",
+            "RESEARCH ASSOCIATE",
+            "RESEARCH ENGINEER",
+            "RESEARCH FELLOW",
+            "RESEARCH SCIENTIST",
+            "RESEARCH SPECIALIST",
+            "SENIOR LECTURER",
+            "SENIOR POSTDOCTORAL ASSOCIATE",
+            "SENIOR POSTDOCTORAL FELLOW",
+            "SENIOR RESEARCH ASSOCIATE",
+            "SENIOR RESEARCH ENGINEER",
+            "SENIOR RESEARCH SCIENTIST",
+            "SENIOR RESEARCH SCIENTIST (MAP)",
+            "SPONSORED RESEARCH TECHNICAL STAFF",
+            "SPONSORED RESEARCH TECHNICAL SUPERVISOR",
+            "STAFF AFFILIATE",
+            "TECHNICAL ASSISTANT",
+            "TECHNICAL ASSOCIATE",
+            "VISITING ASSISTANT PROFESSOR",
+            "VISITING ASSOCIATE PROFESSOR",
+            "VISITING ENGINEER",
+            "VISITING LECTURER",
+            "VISITING PROFESSOR",
+            "VISITING RESEARCH ASSOCIATE",
+            "VISITING SCHOLAR",
+            "VISITING SCIENTIST",
+            "VISITING SENIOR LECTURER",
+            "PART-TIME FLEXIBLE/LL",
+        )
+
+        return (
+            select(
+                persons.c.MIT_ID,
+                persons.c.KRB_NAME_UPPERCASE,
+                persons.c.FIRST_NAME,
+                persons.c.MIDDLE_NAME,
+                persons.c.LAST_NAME,
+                persons.c.EMAIL_ADDRESS,
+                persons.c.DATE_TO_FACULTY,
+                persons.c.ORIGINAL_HIRE_DATE,
+                dlcs.c.DLC_NAME,
+                persons.c.PERSONNEL_SUBAREA_CODE,
+                persons.c.APPOINTMENT_END_DATE,
+                orcids.c.ORCID,
+                dlcs.c.ORG_HIER_SCHOOL_AREA_NAME,
+                dlcs.c.HR_ORG_LEVEL5_NAME,
+            )
+            .select_from(persons)
+            .outerjoin(orcids)
+            .join(dlcs)
+            .where(persons.c.EMAIL_ADDRESS.is_not(None))
+            .where(persons.c.LAST_NAME.is_not(None))
+            .where(persons.c.KRB_NAME_UPPERCASE.is_not(None))
+            .where(persons.c.KRB_NAME_UPPERCASE != "UNKNOWN")
+            .where(persons.c.MIT_ID.is_not(None))
+            .where(persons.c.ORIGINAL_HIRE_DATE.is_not(None))
+            .where(
+                persons.c.APPOINTMENT_END_DATE  # noqa: SIM300
+                >= datetime(2009, 1, 1)  # noqa: DTZ001
+            )
+            .where(func.upper(dlcs.c.ORG_HIER_SCHOOL_AREA_NAME).in_(areas))
+            .where(persons.c.PERSONNEL_SUBAREA_CODE.in_(ps_codes))
+            .where(func.upper(persons.c.JOB_TITLE).in_(titles))
+        )
 
     def _add_element(self, record: dict[str, Any]) -> ET._Element:
         """Create an XML element representing a person.
