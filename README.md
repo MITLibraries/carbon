@@ -153,4 +153,5 @@ SNS_TOPIC="<VALID_SNS_TOPIC_ARN>" # SNS topic ARN used for sending email notific
 LOG_LEVEL="INFO" # The log level for the 'carbon' application. Defaults to 'INFO' if not set.
 ORACLE_LIB_DIR="<PATH>" # The directory containing the Oracle Instant Client library.
 SENTRY_DSN="<SENTRY_DSN>" # If set to a valid Sentry DSN, enables Sentry exception monitoring. This is not needed for local development.
+ARTICLES_PUBLISH_DAYS_PAST= # If set, limits the Articles data warehouse query to a PUBLISH_DATE >= to this many days old, noting publish dates can also be in the future.
 ```

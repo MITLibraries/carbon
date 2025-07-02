@@ -1,5 +1,6 @@
 import os
 from io import BytesIO
+from unittest.mock import patch
 
 import pytest
 from lxml import etree as ET
@@ -155,3 +156,44 @@ def test_articles_xml_feed_query_excludes_records_without_required_fields(
         and article["MIT_ID"] is None
     ]
     assert len(articles_without_required_fields) == 0
+
+
+def test_articles_xml_feed_respects_publish_date_env_var_query_construction(monkeypatch):
+    """Test that env var triggers correct Oracle SQL generation in the query property.
+
+    This test verifies that when ARTICLES_PUBLISH_DAYS_PAST is set, the query property
+    generates the correct Oracle SQL with TO_DATE and SYSDATE functions.
+
+    Note: the use of SQLite for testing makes it quite difficult to test date filtering
+    of the 'm/d/yyyy' format for PUBLISH_DATE found in the data warehouse.  This test
+    confirms that the Oracle SQL looks as expected.
+    """
+    target_days_old = str(365 * 2)  # two years
+    monkeypatch.setenv("ARTICLES_PUBLISH_DAYS_PAST", target_days_old)
+
+    # Create the feed (we don't need a real engine for this test)
+    with patch("carbon.feed.DatabaseEngine") as mock_engine:
+        articles_xml_feed = ArticlesXmlFeed(engine=mock_engine, output_file=BytesIO())
+
+        query_str = str(articles_xml_feed.query)
+
+        assert "TO_DATE(PUBLISH_DATE, 'MM/DD/YYYY')" in query_str
+        assert f"SYSDATE - {target_days_old}" in query_str
+
+
+def test_articles_xml_feed_query_without_env_var_has_no_date_filter(monkeypatch):
+    """Test that without env var, no date filtering is applied to the query.
+
+    Note: the use of SQLite for testing makes it quite difficult to test date filtering
+    of the 'm/d/yyyy' format for PUBLISH_DATE found in the data warehouse.  This test
+    confirms that the Oracle SQL looks as expected.
+    """
+    monkeypatch.delenv("ARTICLES_PUBLISH_DAYS_PAST", raising=False)
+
+    with patch("carbon.feed.DatabaseEngine") as mock_engine:
+        articles_xml_feed = ArticlesXmlFeed(engine=mock_engine, output_file=BytesIO())
+
+        query_str = str(articles_xml_feed.query)
+
+        assert "TO_DATE" not in query_str
+        assert "SYSDATE" not in query_str

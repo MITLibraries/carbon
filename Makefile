@@ -3,14 +3,13 @@
 
 ## ---- This is the Terraform-generated header for carbon-dev. ---- ## \
 If this is a Lambda repo, uncomment the FUNCTION line below \
-and review the other commented lines in the document. 
+and review the other commented lines in the document.
 ECR_NAME_DEV:=carbon-dev
 ECR_URL_DEV:=222053980223.dkr.ecr.us-east-1.amazonaws.com/carbon-dev
 # FUNCTION_DEV:=
 ## ---- End of Terraform-generated header ---- ##
 
 SHELL=/bin/bash
-S3_BUCKET:=shared-files-$(shell aws sts get-caller-identity --query "Account" --output text)
 ORACLE_ZIP:=instantclient-basiclite-linux.x64-21.9.0.0.0dbru.zip
 DATETIME:=$(shell date -u +%Y%m%dT%H%M%SZ)
 
@@ -29,7 +28,8 @@ update: install # update all python dependencies
 	pipenv update --dev
 
 dependencies: # download Oracle instant client zip
-	aws s3 cp s3://$(S3_BUCKET)/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
+	S3_BUCKET=shared-files-$$(aws sts get-caller-identity --query "Account" --output text); \
+	aws s3 cp s3://$$S3_BUCKET/files/$(ORACLE_ZIP) vendor/$(ORACLE_ZIP)
 
 ## ---- Unit test commands ---- ##
 

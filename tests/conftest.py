@@ -41,6 +41,7 @@ def _test_env(ftp_server, monkeypatch):
             '"SYMPLECTIC_FTP_PASS": "pass"}'
         ),
     )
+    monkeypatch.delenv("ARTICLES_PUBLISH_DAYS_PAST", raising=False)
 
 
 @pytest.fixture(autouse=True)

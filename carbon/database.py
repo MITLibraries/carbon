@@ -76,6 +76,7 @@ aa_articles = Table(
     Column("JOURNAL_VOLUME", Unicode),
     Column("MIT_ID", String),
     Column("PUBLISHER", Unicode),
+    Column("PUBLISH_DATE", String),
 )
 
 

@@ -8,7 +8,7 @@ with open("LICENSE") as f:
     mit_license = f.read()
 
 try:
-    output = subprocess.run(  # noqa: S603
+    output = subprocess.run(
         ["git", "describe", "--always"],  # noqa: S607
         stdout=subprocess.PIPE,
         encoding="utf-8",

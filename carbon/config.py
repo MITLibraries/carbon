@@ -10,13 +10,16 @@ root_logger = logging.getLogger()
 
 class Config:
     REQUIRED_ENVIRONMENT_VARIABLES: Iterable[str] = (
-        "FEED_TYPE",
         "DATAWAREHOUSE_CLOUDCONNECTOR_JSON",
+        "FEED_TYPE",
         "SYMPLECTIC_FTP_JSON",
         "SYMPLECTIC_FTP_PATH",
         "SNS_TOPIC_ARN",
         "WORKSPACE",
     )
+    OPTIONAL_ENVIRONMENT_VARIABLES: Iterable[str] = ("ARTICLES_PUBLISH_DAYS_PAST",)
+
+    ARTICLES_PUBLISH_DAYS_PAST: str | None = None
     FEED_TYPE: str
     CONNECTION_STRING: str
     SYMPLECTIC_FTP_USER: str
@@ -75,7 +78,8 @@ class Config:
             root_logger.info("No Sentry DSN found, exceptions will not be sent to Sentry")
 
     def load_environment_variables(self) -> None:
-        """Retrieve required environment variables and populate instance attributes."""
+        """Retrieve environment variables and populate instance attributes."""
+        # check and set REQUIRED env vars
         for config_variable in self.REQUIRED_ENVIRONMENT_VARIABLES:
             try:
                 if config_variable in [
@@ -94,3 +98,7 @@ class Config:
                     config_variable,
                 )
                 raise
+
+        # set OPTIONAL env vars
+        for config_variable in self.OPTIONAL_ENVIRONMENT_VARIABLES:
+            setattr(self, config_variable, os.environ.get(config_variable))

@@ -86,7 +86,7 @@ def main(*, output_file: IO, run_connection_tests: bool, use_sns_logging: bool) 
         try:
             pipe.run()
         except Exception as error:  # noqa: BLE001
-            logger.error("Carbon run has failed.")  # noqa: TRY400
+            logger.error(f"Carbon run has failed: {error}")  # noqa: TRY400
             if use_sns_logging:
                 sns_log(config=config, status="fail", error=error)
         else:
