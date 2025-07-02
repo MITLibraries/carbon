@@ -1,4 +1,3 @@
-import os
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import closing
@@ -16,8 +15,6 @@ from carbon.helpers import (
     get_hire_date_string,
     get_initials,
 )
-
-config = Config()
 
 
 class BaseXmlFeed(ABC):
@@ -121,6 +118,8 @@ class ArticlesXmlFeed(BaseXmlFeed):
         be in the future, so an article may be included multiple times in the XML output
         until its future date has passed.
         """
+        config = Config()
+
         query_object = (
             select(aa_articles)
             .where(aa_articles.c.ARTICLE_ID.is_not(None))
@@ -129,11 +128,11 @@ class ArticlesXmlFeed(BaseXmlFeed):
             .where(aa_articles.c.MIT_ID.is_not(None))
         )
 
-        if days_past := os.environ.get("ARTICLES_PUBLISH_DAYS_PAST"):
+        if config.ARTICLES_PUBLISH_DAYS_PAST:
             query_object = query_object.where(
                 text(
                     "TO_DATE(PUBLISH_DATE, 'MM/DD/YYYY') >= "
-                    f"SYSDATE - {int(days_past)}"
+                    f"SYSDATE - {int(config.ARTICLES_PUBLISH_DAYS_PAST)}"
                 )
             )
 

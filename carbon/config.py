@@ -18,7 +18,8 @@ class Config:
         "WORKSPACE",
     )
     OPTIONAL_ENVIRONMENT_VARIABLES: Iterable[str] = ("ARTICLES_PUBLISH_DAYS_PAST",)
-    ARTICLES_PUBLISH_DAYS_PAST: str
+
+    ARTICLES_PUBLISH_DAYS_PAST: str | None = None
     FEED_TYPE: str
     CONNECTION_STRING: str
     SYMPLECTIC_FTP_USER: str
